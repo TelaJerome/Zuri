@@ -148,6 +148,35 @@ export async function setAvailabilities(req: AuthRequest, res: Response) {
   res.json(availabilities)
 }
 
+export async function setUnavailablePeriods(req: AuthRequest, res: Response) {
+  const schema = z.array(z.object({
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    reason: z.string().optional(),
+  }))
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Données invalides', errors: parsed.error.flatten() })
+    return
+  }
+
+  const pro = await prisma.proProfile.findUnique({ where: { userId: req.user!.userId } })
+  if (!pro) { res.status(404).json({ message: 'Profil introuvable' }); return }
+
+  await prisma.unavailableDate.deleteMany({ where: { proId: pro.id } })
+  await prisma.unavailableDate.createMany({
+    data: parsed.data.map((p) => ({
+      proId: pro.id,
+      startDate: new Date(p.startDate),
+      endDate: new Date(p.endDate),
+      reason: p.reason,
+    })),
+  })
+
+  const periods = await prisma.unavailableDate.findMany({ where: { proId: pro.id } })
+  res.json(periods)
+}
+
 export async function getAvailableSlots(req: Request, res: Response) {
   const { date } = req.query
   if (!date) {
@@ -157,7 +186,7 @@ export async function getAvailableSlots(req: Request, res: Response) {
 
   const pro = await prisma.proProfile.findUnique({
     where: { id: req.params.id },
-    include: { availabilities: true, services: true },
+    include: { availabilities: true, services: true, unavailableDates: true },
   })
   if (!pro) {
     res.status(404).json({ message: 'Professionnel introuvable' })
@@ -165,6 +194,14 @@ export async function getAvailableSlots(req: Request, res: Response) {
   }
 
   const dateObj = new Date(date as string)
+
+  // Vérifie si la date tombe dans une plage d'indisponibilité
+  const isUnavailable = pro.unavailableDates.some((p) => {
+    const d = dateObj.getTime()
+    return d >= new Date(p.startDate).getTime() && d <= new Date(p.endDate).getTime()
+  })
+  if (isUnavailable) { res.json([]); return }
+
   const dayOfWeek = (dateObj.getDay() + 6) % 7 // lundi=0
 
   const dayAvailability = pro.availabilities.filter((a) => a.dayOfWeek === dayOfWeek)

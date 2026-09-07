@@ -12,6 +12,14 @@ export interface User {
   proProfile?: ProProfile
 }
 
+export interface UnavailablePeriod {
+  id: string
+  proId: string
+  startDate: string
+  endDate: string
+  reason?: string
+}
+
 export interface ProProfile {
   id: string
   userId: string
@@ -26,6 +34,7 @@ export interface ProProfile {
   rating?: number
   services?: Service[]
   availabilities?: Availability[]
+  unavailableDates?: UnavailablePeriod[]
   products?: Product[]
 }
 

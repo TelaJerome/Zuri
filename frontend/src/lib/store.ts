@@ -24,15 +24,15 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       setAuth: (user, token) => {
-        localStorage.setItem('beaute_token', token)
+        localStorage.setItem('zuri_token', token)
         set({ user, token })
       },
       logout: () => {
-        localStorage.removeItem('beaute_token')
+        localStorage.removeItem('zuri_token')
         set({ user: null, token: null })
       },
     }),
-    { name: 'beaute_auth' }
+    { name: 'zuri_auth' }
   )
 )
 
@@ -67,6 +67,6 @@ export const useCartStore = create<CartState>()(
       clearCart: () => set({ items: [] }),
       total: () => get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
     }),
-    { name: 'beaute_cart' }
+    { name: 'zuri_cart' }
   )
 )

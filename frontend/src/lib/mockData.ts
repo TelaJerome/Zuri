@@ -175,6 +175,45 @@ export const MOCK_PROS: ProProfile[] = [
     ],
     products: [],
   },
+  {
+    id: 'pro-7',
+    userId: 'u7',
+    name: 'Aïcha Koné',
+    specialties: ['ESTHETIQUE', 'MASSAGE'],
+    bio: 'Esthéticienne spécialisée en soins du visage et massages africains traditionnels. Je propose des soins naturels à base de beurre de karité, d\'huile de baobab et de plantes locales pour sublimer toutes les carnations.',
+    city: 'Toulouse',
+    photoUrl: 'https://images.unsplash.com/photo-1595959183082-7b570b7e08cf?w=400&h=400&fit=crop',
+    siret: '83456789100012',
+    siretVerified: true,
+    isActive: true,
+    rating: 4.9,
+    services: [
+      { id: 's30', proId: 'pro-7', name: 'Soin visage karité', price: 60, durationMinutes: 60, description: 'Nettoyage, gommage et masque au beurre de karité pur' },
+      { id: 's31', proId: 'pro-7', name: 'Massage africain relaxant', price: 75, durationMinutes: 60, description: 'Technique traditionnelle aux huiles naturelles' },
+      { id: 's32', proId: 'pro-7', name: 'Gommage corps complet', price: 80, durationMinutes: 75, description: 'Gommage au sucre de canne et huile de baobab' },
+      { id: 's33', proId: 'pro-7', name: 'Soin mains & pieds', price: 40, durationMinutes: 45, description: 'Manucure et pédicure soin naturel' },
+    ],
+    availabilities: [
+      { id: 'a20', proId: 'pro-7', dayOfWeek: 1, startTime: '09:00', endTime: '18:00' },
+      { id: 'a21', proId: 'pro-7', dayOfWeek: 2, startTime: '09:00', endTime: '18:00' },
+      { id: 'a22', proId: 'pro-7', dayOfWeek: 3, startTime: '09:00', endTime: '18:00' },
+      { id: 'a23', proId: 'pro-7', dayOfWeek: 5, startTime: '10:00', endTime: '16:00' },
+    ],
+    products: [
+      {
+        id: 'p10', proId: 'pro-7', name: 'Beurre de karité pur', category: 'SOIN',
+        price: 16, stock: 20, isActive: true,
+        description: 'Karité brut non raffiné, récolté au Burkina Faso. Hydratation intense.',
+        photoUrl: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=300&h=300&fit=crop',
+      },
+      {
+        id: 'p11', proId: 'pro-7', name: 'Huile de baobab', category: 'SOIN',
+        price: 24, stock: 12, isActive: true,
+        description: 'Huile légère anti-âge, parfaite pour le visage et les cheveux secs.',
+        photoUrl: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=300&h=300&fit=crop',
+      },
+    ],
+  },
 ]
 
 export const MOCK_PRODUCTS: Product[] = [

@@ -14,10 +14,10 @@ async function main() {
 
   // Admin
   await prisma.user.upsert({
-    where: { email: 'admin@beaute.fr' },
+    where: { email: 'admin@zuri.fr' },
     update: {},
     create: {
-      email: 'admin@beaute.fr',
+      email: 'admin@zuri.fr',
       passwordHash: await bcrypt.hash('Admin@1234', 10),
       role: Role.ADMIN,
     },
@@ -25,10 +25,10 @@ async function main() {
 
   // Client de test
   await prisma.user.upsert({
-    where: { email: 'cliente@test.fr' },
+    where: { email: 'cliente@zuri.fr' },
     update: {},
     create: {
-      email: 'cliente@test.fr',
+      email: 'cliente@zuri.fr',
       passwordHash: await bcrypt.hash('Test@1234', 10),
       phone: '0601020304',
       role: Role.CLIENT,
@@ -37,7 +37,7 @@ async function main() {
 
   const pros = [
     {
-      email: 'sophie.coiffure@beaute.fr',
+      email: 'sophie.coiffure@zuri.fr',
       name: 'Sophie Martin',
       city: 'Paris',
       siret: '73282932000074',
@@ -63,7 +63,7 @@ async function main() {
       ],
     },
     {
-      email: 'camille.esthe@beaute.fr',
+      email: 'camille.esthe@zuri.fr',
       name: 'Camille Dubois',
       city: 'Lyon',
       siret: '80263460900019',
@@ -88,7 +88,7 @@ async function main() {
       ],
     },
     {
-      email: 'lea.nailart@beaute.fr',
+      email: 'lea.nailart@zuri.fr',
       name: 'Léa Fontaine',
       city: 'Bordeaux',
       siret: '51234567800017',
@@ -114,7 +114,7 @@ async function main() {
       ],
     },
     {
-      email: 'marie.maquillage@beaute.fr',
+      email: 'marie.maquillage@zuri.fr',
       name: 'Marie Leclerc',
       city: 'Paris',
       siret: '40483304800023',
@@ -140,7 +140,7 @@ async function main() {
       ],
     },
     {
-      email: 'julia.massage@beaute.fr',
+      email: 'julia.massage@zuri.fr',
       name: 'Julia Renard',
       city: 'Marseille',
       siret: '61234567800011',
@@ -165,7 +165,7 @@ async function main() {
       ],
     },
     {
-      email: 'inès.beaute@beaute.fr',
+      email: 'ines.beaute@zuri.fr',
       name: 'Inès Benali',
       city: 'Toulouse',
       siret: '71234567800015',
@@ -188,6 +188,31 @@ async function main() {
       products: [
         { name: 'Crème coiffante boucles', category: ProductCategory.SOIN, price: 20, stock: 14, description: 'Définit et hydrate les cheveux bouclés et frisés' },
         { name: 'Sérum éclat peau noire', category: ProductCategory.SOIN, price: 38, stock: 7, description: 'Unifie le teint et atténue les taches' },
+      ],
+    },
+    {
+      email: 'aicha.kone@zuri.fr',
+      name: 'Aïcha Koné',
+      city: 'Toulouse',
+      siret: '83456789100012',
+      specialties: [Specialty.ESTHETIQUE, Specialty.MASSAGE],
+      bio: 'Esthéticienne spécialisée en soins du visage et massages africains traditionnels. Soins naturels à base de beurre de karité, huile de baobab et plantes locales pour sublimer toutes les carnations.',
+      rating: 4.9,
+      services: [
+        { name: 'Soin visage karité', price: 60, durationMinutes: 60, description: 'Nettoyage, gommage et masque au beurre de karité pur' },
+        { name: 'Massage africain relaxant', price: 75, durationMinutes: 60, description: 'Technique traditionnelle aux huiles naturelles' },
+        { name: 'Gommage corps complet', price: 80, durationMinutes: 75, description: 'Gommage au sucre de canne et huile de baobab' },
+        { name: 'Soin mains & pieds', price: 40, durationMinutes: 45, description: 'Manucure et pédicure soin naturel' },
+      ],
+      availabilities: [
+        { dayOfWeek: 1, startTime: '09:00', endTime: '18:00' },
+        { dayOfWeek: 2, startTime: '09:00', endTime: '18:00' },
+        { dayOfWeek: 3, startTime: '09:00', endTime: '18:00' },
+        { dayOfWeek: 5, startTime: '10:00', endTime: '16:00' },
+      ],
+      products: [
+        { name: 'Beurre de karité pur', category: ProductCategory.SOIN, price: 16, stock: 20, description: 'Karité brut non raffiné, récolté au Burkina Faso. Hydratation intense.' },
+        { name: 'Huile de baobab', category: ProductCategory.SOIN, price: 24, stock: 12, description: 'Huile légère anti-âge, parfaite pour le visage et les cheveux secs.' },
       ],
     },
   ]
@@ -240,9 +265,16 @@ async function main() {
 
   console.log('\n✅ Seed terminé !')
   console.log('\nComptes de test :')
-  console.log('  Admin   : admin@beaute.fr / Admin@1234')
-  console.log('  Cliente : cliente@test.fr / Test@1234')
-  console.log('  Pros    : <email_pro> / Pro@1234')
+  console.log('  Admin   : admin@zuri.fr / Admin@1234')
+  console.log('  Cliente : cliente@zuri.fr / Test@1234')
+  console.log('\n  Pros (mot de passe : Pro@1234) :')
+  console.log('  - sophie.coiffure@zuri.fr')
+  console.log('  - camille.esthe@zuri.fr')
+  console.log('  - lea.nailart@zuri.fr')
+  console.log('  - marie.maquillage@zuri.fr')
+  console.log('  - julia.massage@zuri.fr')
+  console.log('  - ines.beaute@zuri.fr')
+  console.log('  - aicha.kone@zuri.fr  ← profil de test')
 }
 
 main()

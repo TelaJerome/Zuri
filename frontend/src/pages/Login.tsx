@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import { useAuthStore } from '../lib/store'
+import { mockLogin } from '../lib/mockAuth'
 import { User } from '../types'
 
 export default function Login() {
@@ -22,8 +23,17 @@ export default function Login() {
       if (data.user.role === 'PRO') navigate('/pro/dashboard')
       else if (data.user.role === 'ADMIN') navigate('/admin')
       else navigate('/')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur de connexion')
+    } catch {
+      // Fallback mode démo sans backend
+      const mockUser = mockLogin(email, password)
+      if (mockUser) {
+        setAuth(mockUser, 'mock-token')
+        if (mockUser.role === 'PRO') navigate('/pro/dashboard')
+        else if (mockUser.role === 'ADMIN') navigate('/admin')
+        else navigate('/')
+      } else {
+        setError('Email ou mot de passe incorrect')
+      }
     } finally {
       setLoading(false)
     }
@@ -34,7 +44,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="font-serif text-4xl mb-2">Connexion</h1>
-          <p className="text-anthracite/50 text-sm">Bienvenue sur beauté</p>
+          <p className="text-anthracite/50 text-sm">Bienvenue sur Zuri</p>
         </div>
 
         <div className="card p-8">

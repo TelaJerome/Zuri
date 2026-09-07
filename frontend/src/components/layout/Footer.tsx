@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="bg-anthracite text-white/70 mt-20">
       <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
-          <p className="font-serif text-2xl text-white mb-3">beauté</p>
+          <p className="font-serif text-2xl text-white mb-3">Zuri</p>
           <p className="text-sm leading-relaxed">
             La plateforme qui met en relation les clientes avec les professionnelles de la beauté.
           </p>
@@ -35,7 +35,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10 text-center py-4 text-xs text-white/40">
-        © {new Date().getFullYear()} beauté — Tous droits réservés
+        © {new Date().getFullYear()} Zuri — Tous droits réservés
       </div>
     </footer>
   )

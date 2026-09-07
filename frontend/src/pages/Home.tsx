@@ -16,7 +16,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-20 md:py-32 grid md:grid-cols-2 gap-12 items-center">
           <div>
             <h1 className="font-serif text-5xl md:text-6xl text-anthracite leading-tight mb-6">
-              Votre beauté,<br />
+              Zuri —<br />
               <em className="text-taupe not-italic">entre de bonnes mains</em>
             </h1>
             <p className="text-anthracite/60 text-lg leading-relaxed mb-8 font-light">

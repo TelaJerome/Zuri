@@ -10,6 +10,24 @@ interface Props {
   pro: ProProfile
 }
 
+function generateMockSlots(date: Date, availabilities: { dayOfWeek: number; startTime: string; endTime: string }[]): { time: string; available: boolean }[] {
+  const dayOfWeek = date.getDay() // 0=Dim, 1=Lun, ..., 6=Sam
+  const avail = availabilities.find(a => a.dayOfWeek === dayOfWeek)
+  if (!avail) return []
+  const slots: { time: string; available: boolean }[] = []
+  const [startH, startM] = avail.startTime.split(':').map(Number)
+  const [endH, endM] = avail.endTime.split(':').map(Number)
+  let current = startH * 60 + startM
+  const endMinutes = endH * 60 + endM
+  while (current < endMinutes) {
+    const h = Math.floor(current / 60)
+    const m = current % 60
+    slots.push({ time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, available: true })
+    current += 30
+  }
+  return slots
+}
+
 export default function BookingPanel({ pro }: Props) {
   const { user } = useAuthStore()
   const navigate = useNavigate()
@@ -29,8 +47,19 @@ export default function BookingPanel({ pro }: Props) {
     setSelectedDate(date)
     setSelectedSlot(null)
     const dateStr = format(date, 'yyyy-MM-dd')
-    const { data } = await api.get<TimeSlot[]>(`/pros/${pro.id}/slots?date=${dateStr}`)
-    setSlots(data)
+    try {
+      const { data } = await api.get<TimeSlot[]>(`/pros/${pro.id}/slots?date=${dateStr}`)
+      setSlots(data)
+    } catch {
+      // Fallback mock : vérifie les indisponibilités puis génère les créneaux
+      const ts = date.getTime()
+      const blocked = (pro.unavailableDates || []).some(p => {
+        const from = new Date(p.startDate).getTime()
+        const to = new Date(p.endDate).getTime()
+        return ts >= from && ts <= to
+      })
+      setSlots(blocked ? [] : generateMockSlots(date, pro.availabilities || []))
+    }
   }
 
   async function handleBook() {

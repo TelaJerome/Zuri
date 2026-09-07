@@ -54,7 +54,7 @@ export default function Register() {
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
           <h1 className="font-serif text-4xl mb-2">Créer un compte</h1>
-          <p className="text-anthracite/50 text-sm">Rejoignez la communauté beauté</p>
+          <p className="text-anthracite/50 text-sm">Rejoignez la communauté Zuri</p>
         </div>
 
         {/* Toggle rôle */}

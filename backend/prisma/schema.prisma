@@ -101,10 +101,12 @@ model Availability {
 }
 
 model UnavailableDate {
-  id    String     @id @default(cuid())
-  proId String
-  pro   ProProfile @relation(fields: [proId], references: [id], onDelete: Cascade)
-  date  DateTime   @db.Date
+  id        String     @id @default(cuid())
+  proId     String
+  pro       ProProfile @relation(fields: [proId], references: [id], onDelete: Cascade)
+  startDate DateTime   @db.Date
+  endDate   DateTime   @db.Date
+  reason    String?
 }
 
 model Appointment {

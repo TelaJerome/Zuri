@@ -17,7 +17,7 @@ export default function Navbar() {
     <header className="bg-white/90 backdrop-blur-sm border-b border-rose/30 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="font-serif text-2xl text-anthracite tracking-wide">
-          beauté
+          Zuri
         </Link>
 
         <nav className="hidden md:flex items-center gap-6 text-sm font-sans">

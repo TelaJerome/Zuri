@@ -6,6 +6,7 @@ import {
   uploadPhoto,
   upsertServices,
   setAvailabilities,
+  setUnavailablePeriods,
   getAvailableSlots,
 } from '../controllers/pro.controller'
 import { authenticate, requireRole } from '../middleware/auth.middleware'
@@ -21,5 +22,6 @@ router.put('/me/profile', authenticate, requireRole('PRO'), updateMyProfile)
 router.post('/me/photo', authenticate, requireRole('PRO'), upload.single('photo'), uploadPhoto)
 router.put('/me/services', authenticate, requireRole('PRO'), upsertServices)
 router.put('/me/availabilities', authenticate, requireRole('PRO'), setAvailabilities)
+router.put('/me/unavailable-periods', authenticate, requireRole('PRO'), setUnavailablePeriods)
 
 export default router
