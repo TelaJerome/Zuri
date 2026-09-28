@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -103,7 +103,7 @@ export default function MapView() {
   useEffect(() => {
     api.get<ProProfile[]>('/pros')
       .then(({ data }) => {
-        const withCoords = data.map((p, i) => ({
+        const withCoords = data.map((p) => ({
           ...p,
           lat: p.lat ?? (48.8566 + (Math.random() - 0.5) * 0.08),
           lng: p.lng ?? (2.3522 + (Math.random() - 0.5) * 0.08),
