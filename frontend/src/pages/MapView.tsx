@@ -25,21 +25,35 @@ const SPECIALTY_COLORS: Record<Specialty, string> = {
   MAQUILLAGE: '#e74c3c',
 }
 
-function createProIcon(specialty: Specialty) {
+function createProIcon(specialty: Specialty, photoUrl?: string, name?: string) {
   const color = SPECIALTY_COLORS[specialty] || '#b5813d'
+  const initial = name ? name[0].toUpperCase() : '?'
+  const inner = photoUrl
+    ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+    : `<span style="color:white;font-size:15px;font-weight:700;line-height:42px;">${initial}</span>`
   return L.divIcon({
     className: '',
     html: `<div style="
+      background:${photoUrl ? '#fff' : color};
+      width:44px;height:44px;
+      border-radius:50%;
+      border:3px solid ${color};
+      box-shadow:0 2px 10px rgba(0,0,0,0.25);
+      overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+      text-align:center;
+    ">${inner}</div>
+    <div style="
+      width:10px;height:10px;
       background:${color};
-      width:36px;height:36px;
-      border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);
-      border:3px solid white;
-      box-shadow:0 2px 8px rgba(0,0,0,0.25);
+      border-radius:50%;
+      margin:-4px auto 0;
+      border:2px solid white;
+      box-shadow:0 1px 4px rgba(0,0,0,0.2);
     "></div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -38],
+    iconSize: [44, 54],
+    iconAnchor: [22, 54],
+    popupAnchor: [0, -56],
   })
 }
 
@@ -221,7 +235,7 @@ export default function MapView() {
                 <Marker
                   key={pro.id}
                   position={[pro.lat, pro.lng]}
-                  icon={createProIcon(pro.specialties[0])}
+                  icon={createProIcon(pro.specialties[0], pro.photoUrl, pro.name)}
                   eventHandlers={{ click: () => setSelectedPro(pro) }}
                 >
                   <Popup>
