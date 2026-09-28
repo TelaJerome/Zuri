@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -98,6 +98,7 @@ export default function MapView() {
   const [selectedPro, setSelectedPro] = useState<ProProfile | null>(null)
   const [locating, setLocating] = useState(false)
   const [radius, setRadius] = useState(5000)
+  const navigate = useNavigate()
 
   useEffect(() => {
     api.get<ProProfile[]>('/pros')
@@ -153,6 +154,26 @@ export default function MapView() {
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Barre de contrôles */}
       <div className="bg-white border-b border-rose/30 px-4 py-3 flex flex-wrap items-center gap-3 z-10">
+        {/* Toggle liste / carte */}
+        <div className="flex items-center bg-rose/30 rounded-xl p-1 gap-1 mr-2">
+          <button
+            onClick={() => navigate('/professionnelles')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-anthracite/60 hover:text-anthracite transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            Liste
+          </button>
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white text-anthracite shadow-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            Carte
+          </button>
+        </div>
+
         <button
           onClick={locateMe}
           disabled={locating}
