@@ -30,6 +30,14 @@ export default function Navbar() {
             Professionnelles
           </NavLink>
           <NavLink
+            to="/carte"
+            className={({ isActive }) =>
+              isActive ? 'text-taupe font-medium' : 'text-anthracite/70 hover:text-anthracite transition-colors'
+            }
+          >
+            Carte
+          </NavLink>
+          <NavLink
             to="/boutique"
             className={({ isActive }) =>
               isActive ? 'text-taupe font-medium' : 'text-anthracite/70 hover:text-anthracite transition-colors'

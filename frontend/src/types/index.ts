@@ -27,6 +27,8 @@ export interface ProProfile {
   specialties: Specialty[]
   bio?: string
   city: string
+  lat?: number
+  lng?: number
   photoUrl?: string
   siret: string
   siretVerified: boolean

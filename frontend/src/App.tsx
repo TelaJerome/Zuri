@@ -10,6 +10,7 @@ import ProDashboard from './pages/ProDashboard'
 import Shop from './pages/Shop'
 import Cart from './pages/Cart'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import MapView from './pages/MapView'
 import { useAuthStore } from './lib/store'
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: string }) {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="inscription" element={<Register />} />
           <Route path="professionnelles" element={<ProList />} />
           <Route path="professionnelles/:id" element={<ProProfilePage />} />
+          <Route path="carte" element={<MapView />} />
           <Route path="boutique" element={<Shop />} />
           <Route path="panier" element={<Cart />} />
           <Route
