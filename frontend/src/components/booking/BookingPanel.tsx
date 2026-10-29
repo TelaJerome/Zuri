@@ -3,7 +3,7 @@ import { format, addDays, startOfDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProProfile, Service, TimeSlot } from '../../types'
 import { useAuthStore } from '../../lib/store'
-import api from '../../lib/api'
+import api, { DEMO_MODE } from '../../lib/api'
 import { useNavigate } from 'react-router-dom'
 
 interface Props {
@@ -51,6 +51,7 @@ export default function BookingPanel({ pro }: Props) {
       const { data } = await api.get<TimeSlot[]>(`/pros/${pro.id}/slots?date=${dateStr}`)
       setSlots(data)
     } catch {
+      if (!DEMO_MODE) { setSlots([]); return }
       // Fallback mock : vérifie les indisponibilités puis génère les créneaux
       const ts = date.getTime()
       const blocked = (pro.unavailableDates || []).some(p => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import api from '../lib/api'
+import api, { DEMO_MODE } from '../lib/api'
 import { ProProfile, Specialty } from '../types'
 import ProCard from '../components/pro/ProCard'
 import { LABELS } from '../components/ui/SpecialtyBadge'
@@ -24,6 +24,7 @@ export default function ProList() {
     api.get<ProProfile[]>(`/pros?${params}`)
       .then(({ data }) => { setPros(data); setLoading(false) })
       .catch(() => {
+        if (!DEMO_MODE) { setPros([]); setLoading(false); return }
         import('../lib/mockData').then(({ MOCK_PROS }) => {
           let filtered = MOCK_PROS
           if (activeSpecialty) filtered = filtered.filter(p => p.specialties.includes(activeSpecialty))

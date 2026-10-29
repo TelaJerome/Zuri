@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import api from '../lib/api'
+import api, { DEMO_MODE } from '../lib/api'
 import { Product, ProductCategory } from '../types'
 import ProductCard from '../components/shop/ProductCard'
 
@@ -26,6 +26,7 @@ export default function Shop() {
     api.get<Product[]>(`/products?${params}`)
       .then(({ data }) => { setProducts(data); setLoading(false) })
       .catch(() => {
+        if (!DEMO_MODE) { setProducts([]); setLoading(false); return }
         import('../lib/mockData').then(({ MOCK_PRODUCTS }) => {
           let filtered = MOCK_PRODUCTS
           if (category) filtered = filtered.filter(p => p.category === category)

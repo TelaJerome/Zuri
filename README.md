@@ -135,6 +135,12 @@ beaute/
 
 ## Déploiement (prod)
 
-- **Backend** : Railway ou Render (ajouter les variables d'env, remplacer `UPLOAD_DIR` par une URL S3/Cloudinary)
+- **Backend + BDD (Render)** : le fichier `render.yaml` décrit le service et la base. Sur Render : *New > Blueprint*, choisir ce dépôt, valider. Les migrations Prisma s'appliquent à chaque démarrage (`prisma migrate deploy`). Pour charger les données de test une fois : *Shell* du service > `npx prisma db seed`.
+  - ⚠️ En plan gratuit, les fichiers envoyés (`uploads/`) sont effacés à chaque redéploiement : prévoir S3/Cloudinary.
 - **Frontend** : Vercel ou Netlify (`npm run build`, servir le dossier `dist/`)
-- **BDD** : Railway PostgreSQL ou Supabase
+- **Relier le front au backend** : dans `vercel.json`, ajouter avant la règle SPA les redirections vers l'URL Render :
+  ```json
+  { "source": "/api/:path*", "destination": "https://<backend>.onrender.com/api/:path*" },
+  { "source": "/uploads/:path*", "destination": "https://<backend>.onrender.com/uploads/:path*" }
+  ```
+- **Mode démo** : en prod, les données fictives sont désactivées. Pour les réactiver (démo sans backend), définir `VITE_DEMO_MODE=true` dans les variables d'environnement Vercel.

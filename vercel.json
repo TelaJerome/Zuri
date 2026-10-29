@@ -1,5 +1,7 @@
 {
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://zuri-backend-zed1.onrender.com/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://zuri-backend-zed1.onrender.com/uploads/:path*" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ]
 }
