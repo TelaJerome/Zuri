@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import api from '../lib/api'
+import api, { DEMO_MODE } from '../lib/api'
 import { ProProfile as ProProfileType } from '../types'
 import SpecialtyBadge from '../components/ui/SpecialtyBadge'
 import StarRating from '../components/ui/StarRating'
@@ -16,6 +16,7 @@ export default function ProProfilePage() {
     api.get<ProProfileType>(`/pros/${id}`)
       .then(({ data }) => { setPro(data); setLoading(false) })
       .catch(() => {
+        if (!DEMO_MODE) { setLoading(false); return }
         import('../lib/mockData').then(({ MOCK_PROS }) => {
           const found = MOCK_PROS.find(p => p.id === id) || null
           setPro(found)

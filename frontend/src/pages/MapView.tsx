@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import api from '../lib/api'
+import api, { DEMO_MODE } from '../lib/api'
 import { ProProfile, Specialty } from '../types'
 import { LABELS } from '../components/ui/SpecialtyBadge'
 
@@ -111,6 +111,7 @@ export default function MapView() {
         setPros(withCoords)
       })
       .catch(() => {
+        if (!DEMO_MODE) return
         import('../lib/mockData').then(({ MOCK_PROS }) => {
           const withCoords = MOCK_PROS.map((p) => ({
             ...p,

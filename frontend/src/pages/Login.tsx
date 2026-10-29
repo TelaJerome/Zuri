@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import api from '../lib/api'
+import api, { DEMO_MODE } from '../lib/api'
 import { useAuthStore } from '../lib/store'
 import { mockLogin } from '../lib/mockAuth'
 import { User } from '../types'
@@ -23,7 +23,11 @@ export default function Login() {
       if (data.user.role === 'PRO') navigate('/pro/dashboard')
       else if (data.user.role === 'ADMIN') navigate('/admin')
       else navigate('/')
-    } catch {
+    } catch (err: any) {
+      if (!DEMO_MODE) {
+        setError(err.response?.data?.message || 'Email ou mot de passe incorrect')
+        return
+      }
       // Fallback mode démo sans backend
       const mockUser = mockLogin(email, password)
       if (mockUser) {

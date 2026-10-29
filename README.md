@@ -137,4 +137,10 @@ beaute/
 
 - **Backend** : Railway ou Render (ajouter les variables d'env, remplacer `UPLOAD_DIR` par une URL S3/Cloudinary)
 - **Frontend** : Vercel ou Netlify (`npm run build`, servir le dossier `dist/`)
+- **Relier le front au backend** : dans `vercel.json`, ajouter avant la règle SPA les redirections vers l'URL Render :
+  ```json
+  { "source": "/api/:path*", "destination": "https://<backend>.onrender.com/api/:path*" },
+  { "source": "/uploads/:path*", "destination": "https://<backend>.onrender.com/uploads/:path*" }
+  ```
+- **Mode démo** : en prod, les données fictives sont désactivées. Pour les réactiver (démo sans backend), définir `VITE_DEMO_MODE=true` dans les variables d'environnement Vercel.
 - **BDD** : Railway PostgreSQL ou Supabase
