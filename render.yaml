@@ -22,6 +22,9 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://zuri-dusky-seven.vercel.app
+      # Mot de passe du compte admin créé par le seed, généré par Render (visible dans Environment)
+      - key: SEED_ADMIN_PASSWORD
+        generateValue: true
 
 databases:
   - name: zuri-db

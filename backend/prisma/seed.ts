@@ -9,27 +9,46 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter } as any)
 
+// Sur Render, seul l'admin est créé, avec le mot de passe généré par le blueprint ;
+// les comptes de démo et les mots de passe par défaut ne servent qu'en local.
+const onRender = !!process.env.RENDER
+
+function adminPassword() {
+  const value = process.env.SEED_ADMIN_PASSWORD
+  if (value) return value
+  if (onRender) throw new Error("SEED_ADMIN_PASSWORD manquant : refus d'utiliser le mot de passe par défaut")
+  return 'Admin@1234'
+}
+
 async function main() {
   console.log('🌱 Seed en cours...')
 
   // Admin
+  const adminHash = await bcrypt.hash(adminPassword(), 10)
   await prisma.user.upsert({
     where: { email: 'admin@zuri.fr' },
-    update: {},
+    update: { passwordHash: adminHash },
     create: {
       email: 'admin@zuri.fr',
-      passwordHash: await bcrypt.hash('Admin@1234', 10),
+      passwordHash: adminHash,
       role: Role.ADMIN,
     },
   })
 
+  if (onRender) {
+    console.log('✅ Seed terminé : compte admin à jour (mot de passe : variable SEED_ADMIN_PASSWORD).')
+    console.log('   Comptes de démo non créés sur Render.')
+    return
+  }
+
   // Client de test
+  const clientHash = await bcrypt.hash('Test@1234', 10)
   await prisma.user.upsert({
     where: { email: 'cliente@zuri.fr' },
-    update: {},
+    update: { passwordHash: clientHash },
     create: {
       email: 'cliente@zuri.fr',
-      passwordHash: await bcrypt.hash('Test@1234', 10),
+      passwordHash: clientHash,
       phone: '0601020304',
       role: Role.CLIENT,
     },
@@ -217,13 +236,14 @@ async function main() {
     },
   ]
 
+  const proHash = await bcrypt.hash('Pro@1234', 10)
   for (const pro of pros) {
     const user = await prisma.user.upsert({
       where: { email: pro.email },
-      update: {},
+      update: { passwordHash: proHash },
       create: {
         email: pro.email,
-        passwordHash: await bcrypt.hash('Pro@1234', 10),
+        passwordHash: proHash,
         role: Role.PRO,
       },
     })
@@ -264,8 +284,10 @@ async function main() {
   }
 
   console.log('\n✅ Seed terminé !')
+  // Ne jamais afficher un mot de passe venant de l'environnement dans les logs
+  const adminShown = process.env.SEED_ADMIN_PASSWORD ? '(variable SEED_ADMIN_PASSWORD)' : 'Admin@1234'
   console.log('\nComptes de test :')
-  console.log('  Admin   : admin@zuri.fr / Admin@1234')
+  console.log(`  Admin   : admin@zuri.fr / ${adminShown}`)
   console.log('  Cliente : cliente@zuri.fr / Test@1234')
   console.log('\n  Pros (mot de passe : Pro@1234) :')
   console.log('  - sophie.coiffure@zuri.fr')
