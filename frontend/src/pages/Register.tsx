@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../lib/api'
 import { useAuthStore } from '../lib/store'
@@ -6,6 +6,38 @@ import { User, Specialty } from '../types'
 import { LABELS } from '../components/ui/SpecialtyBadge'
 
 const SPECIALTIES: Specialty[] = ['COIFFURE', 'ESTHETIQUE', 'NAIL_ART', 'MASSAGE', 'MAQUILLAGE']
+
+const FIELD_LABELS: Record<string, string> = {
+  email: 'email',
+  password: 'mot de passe (6 caractères minimum)',
+  phone: 'téléphone',
+  name: 'nom',
+  siret: 'SIRET',
+  city: 'ville',
+  specialties: 'spécialité',
+}
+
+// Même contrôle que le backend : 14 chiffres + algorithme de Luhn
+function isValidSiret(siret: string) {
+  if (!/^\d{14}$/.test(siret)) return false
+  let sum = 0
+  for (let i = 0; i < 14; i++) {
+    let digit = parseInt(siret[i])
+    if (i % 2 === 0) {
+      digit *= 2
+      if (digit > 9) digit -= 9
+    }
+    sum += digit
+  }
+  return sum % 10 === 0
+}
+
+function errorMessage(err: any) {
+  if (!err.response) return 'Le serveur ne répond pas, réessayez dans une minute.'
+  const fields = Object.keys(err.response.data?.errors?.fieldErrors ?? {})
+  if (fields.length) return `Champ invalide : ${fields.map((f) => FIELD_LABELS[f] ?? f).join(', ')}`
+  return err.response.data?.message || 'Erreur lors de l\'inscription'
+}
 
 export default function Register() {
   const [searchParams] = useSearchParams()
@@ -19,8 +51,14 @@ export default function Register() {
   const [specialties, setSpecialties] = useState<Specialty[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
+
+  // Le formulaire pro est long : on ramène le message d'erreur dans l'écran
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [error])
 
   function toggle(s: Specialty) {
     setSpecialties((prev) =>
@@ -31,6 +69,16 @@ export default function Register() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if (role === 'pro') {
+      if (!isValidSiret(form.siret)) {
+        setError('Numéro SIRET invalide : vérifiez les 14 chiffres.')
+        return
+      }
+      if (specialties.length === 0) {
+        setError('Choisissez au moins une spécialité.')
+        return
+      }
+    }
     setLoading(true)
     try {
       const endpoint = role === 'pro' ? '/auth/register/pro' : '/auth/register/client'
@@ -43,7 +91,7 @@ export default function Register() {
       setAuth(data.user, data.token)
       navigate(role === 'pro' ? '/pro/dashboard' : '/')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de l\'inscription')
+      setError(errorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -80,12 +128,6 @@ export default function Register() {
         </div>
 
         <div className="card p-8">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-6">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Email</label>
@@ -94,7 +136,7 @@ export default function Register() {
             </div>
             <div>
               <label className="label">Mot de passe</label>
-              <input type="password" className="input" required placeholder="Minimum 6 caractères"
+              <input type="password" className="input" required minLength={6} placeholder="Minimum 6 caractères"
                 value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
             </div>
             <div>
@@ -154,6 +196,12 @@ export default function Register() {
                   </div>
                 </div>
               </>
+            )}
+
+            {error && (
+              <div ref={errorRef} role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+                {error}
+              </div>
             )}
 
             <button type="submit" disabled={loading} className="btn-primary w-full py-3 mt-2">
