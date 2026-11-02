@@ -8,7 +8,14 @@ const bookSchema = z.object({
   serviceId: z.string(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
-  notes: z.string().optional(),
+  notes: z.string().max(1000).optional(),
+  guest: z
+    .object({
+      name: z.string().trim().min(2).max(100),
+      email: z.string().trim().email(),
+      phone: z.string().trim().min(6).max(20),
+    })
+    .optional(),
 })
 
 export async function bookAppointment(req: AuthRequest, res: Response) {
@@ -17,7 +24,14 @@ export async function bookAppointment(req: AuthRequest, res: Response) {
     res.status(400).json({ message: 'Données invalides', errors: parsed.error.flatten() })
     return
   }
-  const { proId, serviceId, date, startTime, notes } = parsed.data
+  const { proId, serviceId, date, startTime, notes, guest } = parsed.data
+
+  // Une cliente connectée réserve avec son compte ; sinon il faut ses coordonnées
+  const clientId = req.user?.role === 'CLIENT' ? req.user.userId : null
+  if (!clientId && !guest) {
+    res.status(400).json({ message: 'Indiquez votre nom, votre email et votre téléphone' })
+    return
+  }
 
   const service = await prisma.service.findUnique({ where: { id: serviceId } })
   if (!service || service.proId !== proId) {
@@ -49,7 +63,12 @@ export async function bookAppointment(req: AuthRequest, res: Response) {
 
   const appointment = await prisma.appointment.create({
     data: {
-      clientId: req.user!.userId,
+      clientId,
+      ...(!clientId && guest && {
+        guestName: guest.name,
+        guestEmail: guest.email,
+        guestPhone: guest.phone,
+      }),
       proId,
       serviceId,
       date: dateObj,
@@ -89,7 +108,8 @@ export async function getProAppointments(req: AuthRequest, res: Response) {
 
   const appointments = await prisma.appointment.findMany({
     where: { proId: pro.id },
-    include: { service: true, client: true },
+    // Jamais la fiche complète de la cliente (elle contient le hash du mot de passe)
+    include: { service: true, client: { select: { id: true, email: true, phone: true } } },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
   })
 
