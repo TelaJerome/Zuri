@@ -9,26 +9,22 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter } as any)
 
-// Sur Render, les mots de passe viennent de l'environnement (générés par le blueprint) ;
-// les valeurs par défaut ne servent qu'en local.
+// Sur Render, seul l'admin est créé, avec le mot de passe généré par le blueprint ;
+// les comptes de démo et les mots de passe par défaut ne servent qu'en local.
 const onRender = !!process.env.RENDER
 
-function seedPassword(envKey: string, localDefault: string) {
-  const value = process.env[envKey]
+function adminPassword() {
+  const value = process.env.SEED_ADMIN_PASSWORD
   if (value) return value
-  if (onRender) throw new Error(`${envKey} manquant : refus d'utiliser le mot de passe par défaut`)
-  return localDefault
+  if (onRender) throw new Error("SEED_ADMIN_PASSWORD manquant : refus d'utiliser le mot de passe par défaut")
+  return 'Admin@1234'
 }
-
-const adminPassword = seedPassword('SEED_ADMIN_PASSWORD', 'Admin@1234')
-const clientPassword = seedPassword('SEED_CLIENT_PASSWORD', 'Test@1234')
-const proPassword = seedPassword('SEED_PRO_PASSWORD', 'Pro@1234')
 
 async function main() {
   console.log('🌱 Seed en cours...')
 
   // Admin
-  const adminHash = await bcrypt.hash(adminPassword, 10)
+  const adminHash = await bcrypt.hash(adminPassword(), 10)
   await prisma.user.upsert({
     where: { email: 'admin@zuri.fr' },
     update: { passwordHash: adminHash },
@@ -39,8 +35,14 @@ async function main() {
     },
   })
 
+  if (onRender) {
+    console.log('✅ Seed terminé : compte admin à jour (mot de passe : variable SEED_ADMIN_PASSWORD).')
+    console.log('   Comptes de démo non créés sur Render.')
+    return
+  }
+
   // Client de test
-  const clientHash = await bcrypt.hash(clientPassword, 10)
+  const clientHash = await bcrypt.hash('Test@1234', 10)
   await prisma.user.upsert({
     where: { email: 'cliente@zuri.fr' },
     update: { passwordHash: clientHash },
@@ -234,7 +236,7 @@ async function main() {
     },
   ]
 
-  const proHash = await bcrypt.hash(proPassword, 10)
+  const proHash = await bcrypt.hash('Pro@1234', 10)
   for (const pro of pros) {
     const user = await prisma.user.upsert({
       where: { email: pro.email },
@@ -282,13 +284,12 @@ async function main() {
   }
 
   console.log('\n✅ Seed terminé !')
-  // Ne jamais afficher les mots de passe venant de l'environnement dans les logs
-  const shown = (envKey: string, localDefault: string) =>
-    process.env[envKey] ? `(variable ${envKey})` : localDefault
+  // Ne jamais afficher un mot de passe venant de l'environnement dans les logs
+  const adminShown = process.env.SEED_ADMIN_PASSWORD ? '(variable SEED_ADMIN_PASSWORD)' : 'Admin@1234'
   console.log('\nComptes de test :')
-  console.log(`  Admin   : admin@zuri.fr / ${shown('SEED_ADMIN_PASSWORD', 'Admin@1234')}`)
-  console.log(`  Cliente : cliente@zuri.fr / ${shown('SEED_CLIENT_PASSWORD', 'Test@1234')}`)
-  console.log(`\n  Pros (mot de passe : ${shown('SEED_PRO_PASSWORD', 'Pro@1234')}) :`)
+  console.log(`  Admin   : admin@zuri.fr / ${adminShown}`)
+  console.log('  Cliente : cliente@zuri.fr / Test@1234')
+  console.log('\n  Pros (mot de passe : Pro@1234) :')
   console.log('  - sophie.coiffure@zuri.fr')
   console.log('  - camille.esthe@zuri.fr')
   console.log('  - lea.nailart@zuri.fr')
