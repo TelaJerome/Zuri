@@ -59,7 +59,11 @@ export interface Availability {
 
 export interface Appointment {
   id: string
-  clientId: string
+  // null pour une réservation sans compte
+  clientId: string | null
+  guestName?: string | null
+  guestEmail?: string | null
+  guestPhone?: string | null
   proId: string
   serviceId: string
   date: string
