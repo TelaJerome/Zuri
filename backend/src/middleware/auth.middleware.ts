@@ -19,6 +19,19 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
   }
 }
 
+// Comme authenticate, mais laisse passer les visiteurs sans token (ou avec un token invalide)
+export function optionalAuth(req: AuthRequest, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization
+  if (header?.startsWith('Bearer ')) {
+    try {
+      req.user = verifyToken(header.slice(7))
+    } catch {
+      req.user = undefined
+    }
+  }
+  next()
+}
+
 export function requireRole(...roles: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {

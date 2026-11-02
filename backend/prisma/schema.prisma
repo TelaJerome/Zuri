@@ -111,8 +111,12 @@ model UnavailableDate {
 
 model Appointment {
   id        String            @id @default(cuid())
-  clientId  String
-  client    User              @relation("ClientAppointments", fields: [clientId], references: [id])
+  // Vide pour une réservation sans compte : les coordonnées sont alors dans guest*
+  clientId  String?
+  client    User?             @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Restrict)
+  guestName  String?
+  guestEmail String?
+  guestPhone String?
   proId     String
   pro       ProProfile        @relation("ProAppointments", fields: [proId], references: [id])
   serviceId String

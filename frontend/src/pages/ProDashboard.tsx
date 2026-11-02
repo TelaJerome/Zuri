@@ -101,7 +101,13 @@ export default function ProDashboard() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-medium">{apt.service?.name}</p>
-                      <p className="text-sm text-anthracite/60">Cliente : {(apt.client as any)?.email}</p>
+                      {apt.client ? (
+                        <p className="text-sm text-anthracite/60">Cliente : {apt.client.email}</p>
+                      ) : (
+                        <p className="text-sm text-anthracite/60">
+                          Cliente (sans compte) : {apt.guestName} · {apt.guestEmail} · {apt.guestPhone}
+                        </p>
+                      )}
                       <p className="text-sm font-medium text-taupe mt-1">
                         {format(new Date(apt.date), 'EEEE d MMMM', { locale: fr })} · {apt.startTime} → {apt.endTime}
                       </p>

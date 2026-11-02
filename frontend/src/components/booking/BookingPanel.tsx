@@ -37,8 +37,13 @@ export default function BookingPanel({ pro }: Props) {
   const [slots, setSlots] = useState<TimeSlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
+  const [guest, setGuest] = useState({ name: '', email: user?.email ?? '', phone: '' })
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  // Seule une cliente connectée réserve avec son compte ; les autres donnent leurs coordonnées
+  const isClient = user?.role === 'CLIENT'
 
   const today = startOfDay(new Date())
   const dates = Array.from({ length: 14 }, (_, i) => addDays(today, i + 1))
@@ -65,10 +70,7 @@ export default function BookingPanel({ pro }: Props) {
 
   async function handleBook() {
     if (!selectedService || !selectedDate || !selectedSlot) return
-    if (!user) {
-      navigate('/connexion')
-      return
-    }
+    setError('')
     setLoading(true)
     try {
       await api.post('/appointments', {
@@ -77,10 +79,16 @@ export default function BookingPanel({ pro }: Props) {
         date: format(selectedDate, 'yyyy-MM-dd'),
         startTime: selectedSlot,
         notes: notes || undefined,
+        ...(!isClient && { guest }),
       })
       setSuccess(true)
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la réservation')
+      const fields = Object.keys(err.response?.data?.errors?.fieldErrors ?? {})
+      setError(
+        fields.includes('guest')
+          ? 'Vérifiez votre nom, votre email et votre téléphone.'
+          : err.response?.data?.message || 'Erreur lors de la réservation'
+      )
     } finally {
       setLoading(false)
     }
@@ -96,11 +104,16 @@ export default function BookingPanel({ pro }: Props) {
         </div>
         <h3 className="font-serif text-xl mb-2">Rendez-vous réservé !</h3>
         <p className="text-sm text-anthracite/60 mb-4">
-          Votre demande a été envoyée à {pro.name}. Vous recevrez une confirmation prochainement.
+          Votre demande a été envoyée à {pro.name}.{' '}
+          {isClient
+            ? 'Vous recevrez une confirmation prochainement.'
+            : `Elle vous contactera au ${guest.phone} ou à ${guest.email} pour confirmer.`}
         </p>
-        <button onClick={() => navigate('/mes-rendez-vous')} className="btn-primary">
-          Voir mes rendez-vous
-        </button>
+        {isClient && (
+          <button onClick={() => navigate('/mes-rendez-vous')} className="btn-primary">
+            Voir mes rendez-vous
+          </button>
+        )}
       </div>
     )
   }
@@ -202,10 +215,32 @@ export default function BookingPanel({ pro }: Props) {
         </div>
       )}
 
+      {/* Coordonnées, pour une réservation sans compte cliente */}
+      {selectedSlot && !isClient && (
+        <div className="space-y-3">
+          <label className="label">Vos coordonnées</label>
+          <input type="text" className="input" placeholder="Nom et prénom" autoComplete="name"
+            value={guest.name} onChange={(e) => setGuest({ ...guest, name: e.target.value })} />
+          <input type="email" className="input" placeholder="votre@email.fr" autoComplete="email"
+            value={guest.email} onChange={(e) => setGuest({ ...guest, email: e.target.value })} />
+          <input type="tel" className="input" placeholder="06 00 00 00 00" autoComplete="tel"
+            value={guest.phone} onChange={(e) => setGuest({ ...guest, phone: e.target.value })} />
+        </div>
+      )}
+
+      {error && (
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Bouton réserver */}
       <button
         onClick={handleBook}
-        disabled={!selectedService || !selectedDate || !selectedSlot || loading}
+        disabled={
+          !selectedService || !selectedDate || !selectedSlot || loading ||
+          (!isClient && (guest.name.trim().length < 2 || !guest.email.includes('@') || guest.phone.trim().length < 6))
+        }
         className="btn-primary w-full"
       >
         {loading ? 'Réservation...' : 'Confirmer la réservation'}
@@ -213,11 +248,11 @@ export default function BookingPanel({ pro }: Props) {
 
       {!user && (
         <p className="text-xs text-center text-anthracite/50">
-          Vous devrez vous{' '}
+          Pas besoin de compte. Déjà cliente ?{' '}
           <button onClick={() => navigate('/connexion')} className="text-taupe underline">
-            connecter
+            Connectez-vous
           </button>{' '}
-          pour finaliser la réservation.
+          pour retrouver vos rendez-vous.
         </p>
       )}
     </div>

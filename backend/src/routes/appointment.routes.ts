@@ -5,11 +5,12 @@ import {
   getProAppointments,
   updateAppointmentStatus,
 } from '../controllers/appointment.controller'
-import { authenticate, requireRole } from '../middleware/auth.middleware'
+import { authenticate, optionalAuth, requireRole } from '../middleware/auth.middleware'
 
 const router = Router()
 
-router.post('/', authenticate, requireRole('CLIENT'), bookAppointment)
+// Ouvert aux visiteurs : une cliente connectée réserve avec son compte, les autres donnent leurs coordonnées
+router.post('/', optionalAuth, bookAppointment)
 router.get('/mine', authenticate, getMyAppointments)
 router.get('/pro', authenticate, requireRole('PRO'), getProAppointments)
 router.patch('/:id/status', authenticate, updateAppointmentStatus)
