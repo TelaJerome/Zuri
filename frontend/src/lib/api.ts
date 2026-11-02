@@ -14,7 +14,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    if (err.response?.status === 401) {
+    // Un 401 à la connexion ou à l'inscription (mauvais mot de passe) est affiché par le formulaire
+    const url: string = err.config?.url ?? ''
+    const isAuthRequest = url.startsWith('/auth/login') || url.startsWith('/auth/register')
+    if (err.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('zuri_token')
       window.location.href = '/connexion'
     }
