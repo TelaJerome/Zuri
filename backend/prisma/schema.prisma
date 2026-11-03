@@ -66,6 +66,12 @@ model ProProfile {
   specialties    Specialty[]
   bio            String?
   city           String
+  // Lieu des prestations, affiché sur la fiche et sur la carte
+  address        String?
+  postalCode     String?
+  // Calculés à partir de l'adresse (ou de la ville seule) par le géocodage
+  lat            Float?
+  lng            Float?
   photoUrl       String?
   siret          String      @unique
   siretVerified  Boolean     @default(false)

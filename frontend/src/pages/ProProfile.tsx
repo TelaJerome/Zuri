@@ -68,7 +68,17 @@ export default function ProProfilePage() {
                     d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                {pro.city}
+                {pro.address ? `${pro.address}, ${pro.postalCode ?? ''} ${pro.city}` : pro.city}
+                {pro.lat && pro.lng && (
+                  <a
+                    href={`https://www.openstreetmap.org/directions?to=${pro.lat}%2C${pro.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-taupe underline ml-2"
+                  >
+                    Itinéraire
+                  </a>
+                )}
               </p>
               <div className="flex flex-wrap gap-2">
                 {pro.specialties.map((s) => (

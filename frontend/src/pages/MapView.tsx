@@ -80,6 +80,23 @@ function FlyToLocation({ coords }: { coords: [number, number] | null }) {
   return null
 }
 
+// Cadre la carte sur toutes les pros localisées au chargement
+function FitToPros({ points }: { points: [number, number][] }) {
+  const map = useMap()
+  const key = points.map((p) => p.join(',')).join(';')
+  useEffect(() => {
+    if (points.length === 1) map.setView(points[0], 13)
+    else if (points.length > 1) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 13 })
+  }, [key, map])
+  return null
+}
+
+const hasPosition = (p: ProProfile): p is ProProfile & { lat: number; lng: number } =>
+  typeof p.lat === 'number' && typeof p.lng === 'number'
+
+const placeLabel = (p: ProProfile) =>
+  p.address ? `${p.address}, ${p.postalCode ?? ''} ${p.city}` : p.city
+
 // Mock coordinates for demo (Paris area)
 const MOCK_COORDS: Record<string, [number, number]> = {
   'pro-1': [48.8566, 2.3522],
@@ -101,15 +118,9 @@ export default function MapView() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Positions réelles calculées par le serveur à partir de l'adresse de chaque pro
     api.get<ProProfile[]>('/pros')
-      .then(({ data }) => {
-        const withCoords = data.map((p) => ({
-          ...p,
-          lat: p.lat ?? (48.8566 + (Math.random() - 0.5) * 0.08),
-          lng: p.lng ?? (2.3522 + (Math.random() - 0.5) * 0.08),
-        }))
-        setPros(withCoords)
-      })
+      .then(({ data }) => setPros(data))
       .catch(() => {
         if (!DEMO_MODE) return
         import('../lib/mockData').then(({ MOCK_PROS }) => {
@@ -144,12 +155,15 @@ export default function MapView() {
 
   const filtered = pros.filter(p => {
     if (activeSpecialty && !p.specialties.includes(activeSpecialty)) return false
-    if (userCoords && p.lat && p.lng) {
+    if (userCoords) {
+      // Filtre par distance : une pro sans position ne peut pas être « dans la zone »
+      if (!hasPosition(p)) return false
       const dist = L.latLng(userCoords).distanceTo(L.latLng(p.lat, p.lng))
       if (dist > radius) return false
     }
     return true
   })
+  const located = filtered.filter(hasPosition)
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -228,8 +242,8 @@ export default function MapView() {
         {/* Carte */}
         <div className="flex-1 relative">
           <MapContainer
-            center={[48.8566, 2.3522]}
-            zoom={12}
+            center={[46.6, 2.4]}
+            zoom={6}
             className="w-full h-full"
             style={{ zIndex: 0 }}
           >
@@ -238,6 +252,7 @@ export default function MapView() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <FlyToLocation coords={flyTo} />
+            {!userCoords && <FitToPros points={pros.filter(hasPosition).map((p) => [p.lat, p.lng])} />}
 
             {/* Position utilisateur */}
             {userCoords && (
@@ -252,8 +267,7 @@ export default function MapView() {
             )}
 
             {/* Markers pros */}
-            {filtered.map((pro) =>
-              pro.lat && pro.lng ? (
+            {located.map((pro) => (
                 <Marker
                   key={pro.id}
                   position={[pro.lat, pro.lng]}
@@ -268,7 +282,7 @@ export default function MapView() {
                         )}
                         <div>
                           <p className="font-semibold text-sm">{pro.name}</p>
-                          <p className="text-xs text-gray-500">{pro.city}</p>
+                          <p className="text-xs text-gray-500">{placeLabel(pro)}</p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1 mb-2">
@@ -291,8 +305,7 @@ export default function MapView() {
                     </div>
                   </Popup>
                 </Marker>
-              ) : null
-            )}
+            ))}
           </MapContainer>
         </div>
 
@@ -313,7 +326,7 @@ export default function MapView() {
                 key={pro.id}
                 onClick={() => {
                   setSelectedPro(pro)
-                  if (pro.lat && pro.lng) setFlyTo([pro.lat, pro.lng])
+                  if (hasPosition(pro)) setFlyTo([pro.lat, pro.lng])
                 }}
                 className={`w-full text-left p-3 border-b border-rose/10 hover:bg-rose/20 transition-colors ${
                   selectedPro?.id === pro.id ? 'bg-rose/30' : ''
@@ -330,7 +343,9 @@ export default function MapView() {
                   )}
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-anthracite truncate">{pro.name}</p>
-                    <p className="text-xs text-anthracite/50">{pro.city}</p>
+                    <p className="text-xs text-anthracite/50 truncate">
+                      {hasPosition(pro) ? placeLabel(pro) : `${pro.city} · Position non renseignée`}
+                    </p>
                     <div className="flex gap-1 mt-0.5">
                       {pro.specialties.slice(0, 2).map(s => (
                         <span key={s} className="text-[9px] px-1 py-0.5 rounded-full text-white"

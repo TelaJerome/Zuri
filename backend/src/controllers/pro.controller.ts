@@ -2,11 +2,15 @@ import { Request, Response } from 'express'
 import { z } from 'zod'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../lib/prisma'
+import { geocode } from '../utils/geocode'
 
 const updateProfileSchema = z.object({
   name: z.string().min(2).optional(),
   bio: z.string().optional(),
   city: z.string().min(2).optional(),
+  // Chaîne vide = adresse retirée (la pro est alors placée au centre de sa ville)
+  address: z.string().trim().max(200).optional(),
+  postalCode: z.string().trim().regex(/^(\d{5})?$/, 'Code postal à 5 chiffres').optional(),
   specialties: z
     .array(z.enum(['COIFFURE', 'ESTHETIQUE', 'NAIL_ART', 'MASSAGE', 'MAQUILLAGE']))
     .optional(),
@@ -109,11 +113,40 @@ export async function updateMyProfile(req: AuthRequest, res: Response) {
     return
   }
 
+  // Champ absent = inchangé ; chaîne vide = effacé
+  const address = parsed.data.address === undefined ? pro.address : parsed.data.address || null
+  const postalCode = parsed.data.postalCode === undefined ? pro.postalCode : parsed.data.postalCode || null
+  const city = parsed.data.city ?? pro.city
+  const data: { [key: string]: unknown } = { ...parsed.data, address, postalCode }
+
+  // Recalcule la position sur la carte si le lieu a changé (ou n'a jamais été calculé)
+  const placeChanged = address !== pro.address || postalCode !== pro.postalCode || city !== pro.city
+  let located: string | null = null
+
+  if (placeChanged || pro.lat === null) {
+    if (address) {
+      const result = await geocode(`${address} ${postalCode ?? ''} ${city}`)
+      if (!result) {
+        res.status(400).json({ message: 'Adresse introuvable : vérifiez le numéro, la rue, le code postal et la ville' })
+        return
+      }
+      data.lat = result.lat
+      data.lng = result.lng
+      located = result.label
+    } else {
+      // Sans adresse, la pro apparaît au centre de sa ville
+      const result = await geocode(`${postalCode ?? ''} ${city}`)
+      data.lat = result?.lat ?? null
+      data.lng = result?.lng ?? null
+      located = result?.label ?? null
+    }
+  }
+
   const updated = await prisma.proProfile.update({
     where: { id: pro.id },
-    data: parsed.data,
+    data,
   })
-  res.json(updated)
+  res.json({ ...updated, located })
 }
 
 export async function uploadPhoto(req: AuthRequest, res: Response) {

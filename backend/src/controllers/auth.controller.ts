@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { Role } from '@prisma/client'
 import { signToken } from '../utils/jwt'
 import { isValidSiret } from '../utils/siret'
+import { geocode } from '../utils/geocode'
 import prisma from '../lib/prisma'
 
 const registerClientSchema = z.object({
@@ -76,6 +77,8 @@ export async function registerPro(req: Request, res: Response) {
   }
 
   const passwordHash = await bcrypt.hash(password, 10)
+  // Position de départ sur la carte : le centre de la ville (affinée quand la pro saisit son adresse)
+  const place = await geocode(city)
   const user = await prisma.user.create({
     data: {
       email,
@@ -83,7 +86,7 @@ export async function registerPro(req: Request, res: Response) {
       phone,
       role: Role.PRO,
       proProfile: {
-        create: { name, siret, city, specialties },
+        create: { name, siret, city, specialties, lat: place?.lat, lng: place?.lng },
       },
     },
     include: { proProfile: true },
