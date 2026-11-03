@@ -115,3 +115,23 @@ export interface TimeSlot {
   time: string
   available: boolean
 }
+
+export interface Message {
+  id: string
+  conversationId: string
+  senderId: string
+  body: string
+  readAt: string | null
+  createdAt: string
+}
+
+export interface Conversation {
+  id: string
+  clientId: string
+  proId: string
+  lastMessageAt: string
+  client: { id: string; email: string }
+  pro: { id: string; name: string; photoUrl?: string | null; city: string }
+  lastMessage: Message | null
+  unreadCount: number
+}
