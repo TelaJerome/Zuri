@@ -9,6 +9,7 @@ import appointmentRoutes from './routes/appointment.routes'
 import productRoutes from './routes/product.routes'
 import orderRoutes from './routes/order.routes'
 import adminRoutes from './routes/admin.routes'
+import messageRoutes from './routes/message.routes'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -32,6 +33,7 @@ app.use('/api/appointments', appointmentRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/messages', messageRoutes)
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 

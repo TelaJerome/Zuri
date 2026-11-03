@@ -109,10 +109,18 @@ export default function BookingPanel({ pro }: Props) {
             ? 'Vous recevrez une confirmation prochainement.'
             : `Elle vous contactera au ${guest.phone} ou à ${guest.email} pour confirmer.`}
         </p>
-        {isClient && (
+        {isClient ? (
           <button onClick={() => navigate('/mes-rendez-vous')} className="btn-primary">
             Voir mes rendez-vous
           </button>
+        ) : !user && (
+          <p className="text-xs text-anthracite/50">
+            Avec un{' '}
+            <button onClick={() => navigate('/inscription')} className="text-taupe underline">
+              compte cliente
+            </button>
+            , vous pourriez aussi échanger par message avec {pro.name}.
+          </p>
         )}
       </div>
     )

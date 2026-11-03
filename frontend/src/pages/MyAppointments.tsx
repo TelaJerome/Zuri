@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import api from '../lib/api'
 import { Appointment } from '../types'
+import { useOpenConversation } from '../lib/messages'
 
 const STATUS_LABELS: Record<string, { label: string; class: string }> = {
   PENDING: { label: 'En attente', class: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -14,6 +15,7 @@ export default function MyAppointments() {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
+  const openConversation = useOpenConversation()
 
   useEffect(() => {
     setLoading(true)
@@ -69,7 +71,15 @@ export default function MyAppointments() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium">{apt.service?.name}</p>
-                    <p className="text-sm text-anthracite/60 mb-1">avec {apt.pro?.name} · {apt.pro?.city}</p>
+                    <p className="text-sm text-anthracite/60 mb-1">
+                      avec {apt.pro?.name} · {apt.pro?.city} ·{' '}
+                      <button
+                        onClick={() => openConversation({ proId: apt.proId }).catch(() => {})}
+                        className="text-taupe font-medium hover:underline"
+                      >
+                        Écrire
+                      </button>
+                    </p>
                     <p className="text-sm font-medium text-taupe">
                       {format(new Date(apt.date), 'EEEE d MMMM yyyy', { locale: fr })} à {apt.startTime}
                     </p>

@@ -5,6 +5,7 @@ import api from '../lib/api'
 import { Appointment, Availability, ProProfile, Product, Service, UnavailablePeriod } from '../types'
 import { useAuthStore } from '../lib/store'
 import { LABELS } from '../components/ui/SpecialtyBadge'
+import { useOpenConversation } from '../lib/messages'
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
@@ -14,6 +15,7 @@ export default function ProDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [profile, setProfile] = useState<ProProfile | null>(user?.proProfile || null)
   const [products, setProducts] = useState<Product[]>([])
+  const openConversation = useOpenConversation()
 
   useEffect(() => {
     api.get('/auth/me')
@@ -102,10 +104,19 @@ export default function ProDashboard() {
                     <div>
                       <p className="font-medium">{apt.service?.name}</p>
                       {apt.client ? (
-                        <p className="text-sm text-anthracite/60">Cliente : {apt.client.email}</p>
+                        <p className="text-sm text-anthracite/60">
+                          Cliente : {apt.client.email} ·{' '}
+                          <button
+                            onClick={() => openConversation({ clientId: apt.client!.id }).catch(() => {})}
+                            className="text-taupe font-medium hover:underline"
+                          >
+                            Écrire à la cliente
+                          </button>
+                        </p>
                       ) : (
                         <p className="text-sm text-anthracite/60">
-                          Cliente (sans compte) : {apt.guestName} · {apt.guestEmail} · {apt.guestPhone}
+                          Cliente (sans compte, à contacter par téléphone ou email) :{' '}
+                          {apt.guestName} · {apt.guestEmail} · {apt.guestPhone}
                         </p>
                       )}
                       <p className="text-sm font-medium text-taupe mt-1">
