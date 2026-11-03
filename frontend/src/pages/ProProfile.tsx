@@ -6,6 +6,7 @@ import SpecialtyBadge from '../components/ui/SpecialtyBadge'
 import StarRating from '../components/ui/StarRating'
 import BookingPanel from '../components/booking/BookingPanel'
 import ProductCard from '../components/shop/ProductCard'
+import ContactProCard from '../components/booking/ContactProCard'
 
 export default function ProProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -122,8 +123,9 @@ export default function ProProfilePage() {
 
         {/* Colonne droite : réservation */}
         <div className="md:col-span-2">
-          <div className="sticky top-24">
+          <div className="sticky top-24 space-y-6">
             <BookingPanel pro={pro} />
+            <ContactProCard pro={pro} />
           </div>
         </div>
       </div>
