@@ -1,9 +1,11 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore, useCartStore } from '../../lib/store'
+import { useUnreadCount } from '../../lib/messages'
 
 export default function Navbar() {
   const { user, logout } = useAuthStore()
   const cartItems = useCartStore((s) => s.items)
+  const unread = useUnreadCount()
   const navigate = useNavigate()
 
   const cartCount = cartItems.reduce((n, i) => n + i.quantity, 0)
@@ -63,6 +65,16 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-2">
+              {(user.role === 'CLIENT' || user.role === 'PRO') && (
+                <Link to="/messages" className="btn-ghost text-xs relative">
+                  Messages
+                  {unread > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-taupe text-white text-[10px] min-w-[1rem] h-4 px-1 rounded-full flex items-center justify-center font-medium">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </Link>
+              )}
               {user.role === 'CLIENT' && (
                 <Link to="/mes-rendez-vous" className="btn-ghost text-xs">
                   Mes RDV
