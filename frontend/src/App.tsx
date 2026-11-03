@@ -11,12 +11,14 @@ import Shop from './pages/Shop'
 import Cart from './pages/Cart'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import MapView from './pages/MapView'
+import Messages from './pages/Messages'
 import { useAuthStore } from './lib/store'
 
-function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: string }) {
+function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: string | string[] }) {
   const { user } = useAuthStore()
   if (!user) return <Navigate to="/connexion" replace />
-  if (role && user.role !== role) return <Navigate to="/" replace />
+  const allowed = typeof role === 'string' ? [role] : role
+  if (allowed && !allowed.includes(user.role)) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
@@ -38,6 +40,14 @@ export default function App() {
             element={
               <ProtectedRoute role="CLIENT">
                 <MyAppointments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="messages"
+            element={
+              <ProtectedRoute role={['CLIENT', 'PRO']}>
+                <Messages />
               </ProtectedRoute>
             }
           />
