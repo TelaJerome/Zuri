@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { z } from 'zod'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../lib/prisma'
+import { toMinutes } from './pro.controller'
 
 const bookSchema = z.object({
   proId: z.string(),
@@ -39,23 +40,34 @@ export async function bookAppointment(req: AuthRequest, res: Response) {
     return
   }
 
-  const [h, m] = startTime.split(':').map(Number)
-  const endMinutes = h * 60 + m + service.durationMinutes
+  const startMinutes = toMinutes(startTime)
+  const endMinutes = startMinutes + service.durationMinutes
   const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`
 
   const dateObj = new Date(date)
   const nextDay = new Date(dateObj)
-  nextDay.setDate(nextDay.getDate() + 1)
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+
+  // Le RDV doit tenir entièrement dans une plage de disponibilité (pas sur une pause)
+  const ranges = await prisma.availability.findMany({ where: { proId, dayOfWeek: dateObj.getUTCDay() } })
+  const fits = ranges.some((r) => startMinutes >= toMinutes(r.startTime) && endMinutes <= toMinutes(r.endTime))
+  if (!fits) {
+    res.status(409).json({ message: 'Ce créneau n\'est pas dans les horaires de la professionnelle' })
+    return
+  }
 
   // Vérifie qu'aucun RDV ne chevauche ce créneau
-  const conflict = await prisma.appointment.findFirst({
+  const sameDay = await prisma.appointment.findMany({
     where: {
       proId,
       date: { gte: dateObj, lt: nextDay },
       status: { not: 'CANCELLED' },
-      startTime,
     },
+    select: { startTime: true, endTime: true },
   })
+  const conflict = sameDay.some(
+    (apt) => startMinutes < toMinutes(apt.endTime) && endMinutes > toMinutes(apt.startTime)
+  )
   if (conflict) {
     res.status(409).json({ message: 'Ce créneau est déjà réservé' })
     return

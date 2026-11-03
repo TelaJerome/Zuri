@@ -12,18 +12,22 @@ interface Props {
 
 function generateMockSlots(date: Date, availabilities: { dayOfWeek: number; startTime: string; endTime: string }[]): { time: string; available: boolean }[] {
   const dayOfWeek = date.getDay() // 0=Dim, 1=Lun, ..., 6=Sam
-  const avail = availabilities.find(a => a.dayOfWeek === dayOfWeek)
-  if (!avail) return []
+  // Une ou deux plages par jour (pause entre les deux)
+  const ranges = availabilities
+    .filter(a => a.dayOfWeek === dayOfWeek)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))
   const slots: { time: string; available: boolean }[] = []
-  const [startH, startM] = avail.startTime.split(':').map(Number)
-  const [endH, endM] = avail.endTime.split(':').map(Number)
-  let current = startH * 60 + startM
-  const endMinutes = endH * 60 + endM
-  while (current < endMinutes) {
-    const h = Math.floor(current / 60)
-    const m = current % 60
-    slots.push({ time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, available: true })
-    current += 30
+  for (const avail of ranges) {
+    const [startH, startM] = avail.startTime.split(':').map(Number)
+    const [endH, endM] = avail.endTime.split(':').map(Number)
+    let current = startH * 60 + startM
+    const endMinutes = endH * 60 + endM
+    while (current < endMinutes) {
+      const h = Math.floor(current / 60)
+      const m = current % 60
+      slots.push({ time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, available: true })
+      current += 30
+    }
   }
   return slots
 }
@@ -48,12 +52,14 @@ export default function BookingPanel({ pro }: Props) {
   const today = startOfDay(new Date())
   const dates = Array.from({ length: 14 }, (_, i) => addDays(today, i + 1))
 
-  async function handleDateSelect(date: Date) {
+  // Les créneaux dépendent de la durée de la prestation (elle doit tenir avant une pause ou la fin de journée)
+  async function handleDateSelect(date: Date, service: Service | null = selectedService) {
     setSelectedDate(date)
     setSelectedSlot(null)
     const dateStr = format(date, 'yyyy-MM-dd')
     try {
-      const { data } = await api.get<TimeSlot[]>(`/pros/${pro.id}/slots?date=${dateStr}`)
+      const serviceParam = service ? `&serviceId=${service.id}` : ''
+      const { data } = await api.get<TimeSlot[]>(`/pros/${pro.id}/slots?date=${dateStr}${serviceParam}`)
       setSlots(data)
     } catch {
       if (!DEMO_MODE) { setSlots([]); return }
@@ -137,7 +143,10 @@ export default function BookingPanel({ pro }: Props) {
           {pro.services?.map((s) => (
             <button
               key={s.id}
-              onClick={() => setSelectedService(s)}
+              onClick={() => {
+                setSelectedService(s)
+                if (selectedDate) handleDateSelect(selectedDate, s)
+              }}
               className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${
                 selectedService?.id === s.id
                   ? 'border-taupe bg-cream'

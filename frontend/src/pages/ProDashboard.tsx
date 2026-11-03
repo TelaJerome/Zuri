@@ -243,16 +243,55 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
   )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
+
+  // Plages d'un jour, dans l'ordre de la journée (2 au maximum : matin et après-midi)
+  function rangesOf(day: number) {
+    return availabilities
+      .filter(a => a.dayOfWeek === day)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+  }
+
+  function newRange(day: number, startTime: string, endTime: string): Availability {
+    return { id: `new-${day}-${Date.now()}-${Math.random()}`, proId: profile.id, dayOfWeek: day, startTime, endTime }
+  }
 
   function toggleDay(day: number) {
     setAvailabilities(prev => {
-      if (prev.find(a => a.dayOfWeek === day)) return prev.filter(a => a.dayOfWeek !== day)
-      return [...prev, { id: `new-${day}`, proId: profile.id, dayOfWeek: day, startTime: '09:00', endTime: '18:00' }].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+      if (prev.some(a => a.dayOfWeek === day)) return prev.filter(a => a.dayOfWeek !== day)
+      return [...prev, newRange(day, '09:00', '18:00')]
     })
   }
 
-  function updateDayTime(day: number, field: 'startTime' | 'endTime', value: string) {
-    setAvailabilities(prev => prev.map(a => a.dayOfWeek === day ? { ...a, [field]: value } : a))
+  // Coupe la journée en deux plages, avec une pause de 12:00 à 14:00 par défaut
+  function addBreak(day: number) {
+    const [first] = rangesOf(day)
+    if (!first) return
+    const afternoonEnd = first.endTime > '14:00' ? first.endTime : '18:00'
+    setAvailabilities(prev => [
+      ...prev.map(a => (a.id === first.id ? { ...a, endTime: '12:00' } : a)),
+      newRange(day, '14:00', afternoonEnd),
+    ])
+  }
+
+  function removeRange(id: string) {
+    setAvailabilities(prev => prev.filter(a => a.id !== id))
+  }
+
+  function updateRange(id: string, field: 'startTime' | 'endTime', value: string) {
+    setAvailabilities(prev => prev.map(a => (a.id === id ? { ...a, [field]: value } : a)))
+  }
+
+  // Même contrôle que le serveur : début avant fin, pas de chevauchement entre les plages d'un jour
+  function dayError(day: number) {
+    const ranges = rangesOf(day)
+    if (ranges.some(r => !r.startTime || !r.endTime || r.startTime >= r.endTime)) {
+      return 'Chaque plage doit finir après son début.'
+    }
+    if (ranges.length === 2 && ranges[1].startTime < ranges[0].endTime) {
+      return 'L\'après-midi doit commencer après la fin du matin.'
+    }
+    return ''
   }
 
   function updateService(index: number, field: keyof Service, value: string | number) {
@@ -280,22 +319,33 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
   }
 
   async function save() {
+    setSaveError('')
+    const invalidDay = [0, 1, 2, 3, 4, 5, 6].find(d => dayError(d))
+    if (invalidDay !== undefined) {
+      setSaveError(`${DAYS[invalidDay]} : ${dayError(invalidDay)}`)
+      return
+    }
     setSaving(true)
     try {
       await api.put('/pros/me/profile', { name: form.name, bio: form.bio, city: form.city })
       await api.put('/pros/me/services', services.map(s => ({
         name: s.name, price: s.price, durationMinutes: s.durationMinutes, description: s.description,
       })))
-      await api.put('/pros/me/availabilities', availabilities)
+      await api.put('/pros/me/availabilities', availabilities.map(a => ({
+        dayOfWeek: a.dayOfWeek, startTime: a.startTime, endTime: a.endTime,
+      })))
       await api.put('/pros/me/unavailable-periods', unavailablePeriods.map(p => ({
         startDate: p.startDate, endDate: p.endDate, reason: p.reason,
       })))
-    } catch {}
-    const updated = { ...profile, ...form, services, availabilities, unavailableDates: unavailablePeriods }
-    onSave(updated)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    setSaving(false)
+      const updated = { ...profile, ...form, services, availabilities, unavailableDates: unavailablePeriods }
+      onSave(updated)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err: any) {
+      setSaveError(err.response?.data?.message || 'L\'enregistrement a échoué, réessayez.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -436,41 +486,76 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
       {/* Disponibilités */}
       <div className="card p-6">
         <h2 className="font-serif text-xl mb-5">Mes disponibilités</h2>
-        <p className="text-xs text-anthracite/50 mb-4">Cochez les jours où vous travaillez et définissez vos horaires.</p>
+        <p className="text-xs text-anthracite/50 mb-4">
+          Cochez les jours où vous travaillez et définissez vos horaires. Pour faire une pause dans la journée,
+          ajoutez une deuxième plage : aucun rendez-vous ne sera proposé entre les deux.
+        </p>
         <div className="space-y-3">
           {[1, 2, 3, 4, 5, 6, 0].map((day) => {
-            const avail = availabilities.find(a => a.dayOfWeek === day)
-            const active = !!avail
+            const ranges = rangesOf(day)
+            const active = ranges.length > 0
+            const error = dayError(day)
             return (
-              <div key={day} className={`flex items-center gap-4 rounded-xl px-4 py-3 border transition-colors ${active ? 'border-taupe/40 bg-cream' : 'border-rose/20 bg-white'}`}>
+              <div key={day} className={`flex items-start gap-4 rounded-xl px-4 py-3 border transition-colors ${active ? 'border-taupe/40 bg-cream' : 'border-rose/20 bg-white'}`}>
                 <button
                   type="button"
                   onClick={() => toggleDay(day)}
-                  className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 relative ${active ? 'bg-taupe' : 'bg-rose/40'}`}
+                  aria-label={active ? `${DAYS[day]} : passer en repos` : `${DAYS[day]} : travailler ce jour`}
+                  className={`w-10 h-6 mt-1.5 rounded-full transition-colors flex-shrink-0 relative ${active ? 'bg-taupe' : 'bg-rose/40'}`}
                 >
                   <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${active ? 'translate-x-4' : 'translate-x-0.5'}`} />
                 </button>
-                <span className={`w-20 text-sm font-medium flex-shrink-0 ${active ? 'text-anthracite' : 'text-anthracite/40'}`}>
+                <span className={`w-20 mt-2 text-sm font-medium flex-shrink-0 ${active ? 'text-anthracite' : 'text-anthracite/40'}`}>
                   {DAYS[day]}
                 </span>
                 {active ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <input
-                      type="time"
-                      value={avail!.startTime}
-                      onChange={(e) => updateDayTime(day, 'startTime', e.target.value)}
-                      className="input py-1.5 text-sm w-28"
-                    />
-                    <span className="text-anthracite/40 text-sm">→</span>
-                    <input
-                      type="time"
-                      value={avail!.endTime}
-                      onChange={(e) => updateDayTime(day, 'endTime', e.target.value)}
-                      className="input py-1.5 text-sm w-28"
-                    />
+                  <div className="flex-1 space-y-2">
+                    {ranges.map((range, i) => (
+                      <div key={range.id}>
+                        {i === 1 && (
+                          <p className="text-[11px] text-anthracite/40 mb-2">
+                            Pause de {ranges[0].endTime} à {range.startTime}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <input
+                            type="time"
+                            value={range.startTime}
+                            onChange={(e) => updateRange(range.id, 'startTime', e.target.value)}
+                            className="input py-1.5 text-sm w-28"
+                          />
+                          <span className="text-anthracite/40 text-sm">→</span>
+                          <input
+                            type="time"
+                            value={range.endTime}
+                            onChange={(e) => updateRange(range.id, 'endTime', e.target.value)}
+                            className="input py-1.5 text-sm w-28"
+                          />
+                          {i === 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeRange(range.id)}
+                              className="text-xs text-red-500 hover:underline"
+                            >
+                              Supprimer la pause
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {ranges.length === 1 && (
+                      <button
+                        type="button"
+                        onClick={() => addBreak(day)}
+                        className="text-xs text-taupe font-medium hover:underline"
+                      >
+                        + Ajouter une pause
+                      </button>
+                    )}
+                    {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
                   </div>
                 ) : (
-                  <span className="text-xs text-anthracite/30 italic">Repos</span>
+                  <span className="text-xs text-anthracite/30 italic mt-2">Repos</span>
                 )}
               </div>
             )
@@ -551,6 +636,11 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
       </div>
 
       {/* Bouton save */}
+      {saveError && (
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          {saveError}
+        </div>
+      )}
       <button onClick={save} disabled={saving} className="btn-primary w-full py-3">
         {saving ? 'Enregistrement...' : saved ? '✓ Enregistré !' : 'Enregistrer toutes les modifications'}
       </button>

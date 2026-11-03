@@ -19,6 +19,9 @@ const serviceSchema = z.object({
   description: z.string().optional(),
 })
 
+// Jusqu'à 2 plages par jour (ex. matin et après-midi, avec une pause entre les deux).
+// dayOfWeek suit la convention JavaScript : 0 = dimanche, 1 = lundi… 6 = samedi.
+const MAX_RANGES_PER_DAY = 2
 const availabilitySchema = z.array(
   z.object({
     dayOfWeek: z.number().int().min(0).max(6),
@@ -26,6 +29,30 @@ const availabilitySchema = z.array(
     endTime: z.string().regex(/^\d{2}:\d{2}$/),
   })
 )
+
+export function toMinutes(time: string) {
+  const [h, m] = time.split(':').map(Number)
+  return h * 60 + m
+}
+
+// Message d'erreur si les plages d'un même jour sont incohérentes, sinon null
+function availabilityError(ranges: { dayOfWeek: number; startTime: string; endTime: string }[]) {
+  for (let day = 0; day < 7; day++) {
+    const dayRanges = ranges
+      .filter((r) => r.dayOfWeek === day)
+      .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime))
+    if (dayRanges.length > MAX_RANGES_PER_DAY) return `${MAX_RANGES_PER_DAY} plages maximum par jour`
+    for (let i = 0; i < dayRanges.length; i++) {
+      if (toMinutes(dayRanges[i].startTime) >= toMinutes(dayRanges[i].endTime)) {
+        return 'Chaque plage doit finir après son début'
+      }
+      if (i > 0 && toMinutes(dayRanges[i].startTime) < toMinutes(dayRanges[i - 1].endTime)) {
+        return 'Les plages d\'un même jour ne doivent pas se chevaucher'
+      }
+    }
+  }
+  return null
+}
 
 export async function listPros(req: Request, res: Response) {
   const { search, specialty, city } = req.query
@@ -132,6 +159,11 @@ export async function setAvailabilities(req: AuthRequest, res: Response) {
     res.status(400).json({ message: 'Données invalides', errors: parsed.error.flatten() })
     return
   }
+  const rangeError = availabilityError(parsed.data)
+  if (rangeError) {
+    res.status(400).json({ message: rangeError })
+    return
+  }
 
   const pro = await prisma.proProfile.findUnique({ where: { userId: req.user!.userId } })
   if (!pro) {
@@ -139,10 +171,12 @@ export async function setAvailabilities(req: AuthRequest, res: Response) {
     return
   }
 
-  await prisma.availability.deleteMany({ where: { proId: pro.id } })
-  await prisma.availability.createMany({
-    data: parsed.data.map((a) => ({ ...a, proId: pro.id })),
-  })
+  await prisma.$transaction([
+    prisma.availability.deleteMany({ where: { proId: pro.id } }),
+    prisma.availability.createMany({
+      data: parsed.data.map((a) => ({ ...a, proId: pro.id })),
+    }),
+  ])
 
   const availabilities = await prisma.availability.findMany({ where: { proId: pro.id } })
   res.json(availabilities)
@@ -202,19 +236,27 @@ export async function getAvailableSlots(req: Request, res: Response) {
   })
   if (isUnavailable) { res.json([]); return }
 
-  const dayOfWeek = (dateObj.getDay() + 6) % 7 // lundi=0
+  // « AAAA-MM-JJ » est lu à minuit UTC : getUTCDay donne le bon jour (0 = dimanche, comme l'espace pro)
+  const dayOfWeek = dateObj.getUTCDay()
 
-  const dayAvailability = pro.availabilities.filter((a) => a.dayOfWeek === dayOfWeek)
+  const dayAvailability = pro.availabilities
+    .filter((a) => a.dayOfWeek === dayOfWeek)
+    .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime))
   if (dayAvailability.length === 0) {
     res.json([])
     return
   }
 
+  // Durée de la prestation choisie (30 min par défaut) : un créneau doit tenir avant la fin de la plage
+  const service = req.query.serviceId
+    ? pro.services.find((s) => s.id === req.query.serviceId)
+    : undefined
+  const duration = service?.durationMinutes ?? 30
+
   // Récupère les RDV déjà réservés pour ce jour
-  const start = new Date(date as string)
-  start.setHours(0, 0, 0, 0)
+  const start = new Date(dateObj)
   const end = new Date(start)
-  end.setDate(end.getDate() + 1)
+  end.setUTCDate(end.getUTCDate() + 1)
 
   const existingAppointments = await prisma.appointment.findMany({
     where: {
@@ -222,25 +264,18 @@ export async function getAvailableSlots(req: Request, res: Response) {
       date: { gte: start, lt: end },
       status: { not: 'CANCELLED' },
     },
-    include: { service: true },
+    select: { startTime: true, endTime: true },
   })
+  const booked = existingAppointments.map((apt) => [toMinutes(apt.startTime), toMinutes(apt.endTime)])
 
-  // Génère des créneaux de 30 min dans les plages de disponibilité
+  // Créneaux toutes les 30 min dans chaque plage ; pris s'ils chevauchent un RDV existant
   const slots: { time: string; available: boolean }[] = []
   for (const avail of dayAvailability) {
-    const [startH, startM] = avail.startTime.split(':').map(Number)
-    const [endH, endM] = avail.endTime.split(':').map(Number)
-    let current = startH * 60 + startM
-    const endMinutes = endH * 60 + endM
-
-    while (current < endMinutes) {
-      const h = Math.floor(current / 60)
-      const m = current % 60
-      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-
-      const isBooked = existingAppointments.some((apt) => apt.startTime === timeStr)
-      slots.push({ time: timeStr, available: !isBooked })
-      current += 30
+    const rangeEnd = toMinutes(avail.endTime)
+    for (let current = toMinutes(avail.startTime); current + duration <= rangeEnd; current += 30) {
+      const timeStr = `${String(Math.floor(current / 60)).padStart(2, '0')}:${String(current % 60).padStart(2, '0')}`
+      const overlaps = booked.some(([s, e]) => current < e && current + duration > s)
+      slots.push({ time: timeStr, available: !overlaps })
     }
   }
 
