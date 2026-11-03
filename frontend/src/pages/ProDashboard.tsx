@@ -232,8 +232,12 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
     name: profile.name,
     bio: profile.bio || '',
     city: profile.city,
+    address: profile.address || '',
+    postalCode: profile.postalCode || '',
     photoUrl: profile.photoUrl || '',
   })
+  // Adresse telle que trouvée par le géocodage, affichée après l'enregistrement
+  const [located, setLocated] = useState('')
   const [services, setServices] = useState<Service[]>(profile.services || [])
   const [availabilities, setAvailabilities] = useState<Availability[]>(
     (profile as any).availabilities || []
@@ -327,7 +331,10 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
     }
     setSaving(true)
     try {
-      await api.put('/pros/me/profile', { name: form.name, bio: form.bio, city: form.city })
+      const { data: savedProfile } = await api.put<ProProfile & { located: string | null }>('/pros/me/profile', {
+        name: form.name, bio: form.bio, city: form.city, address: form.address, postalCode: form.postalCode,
+      })
+      if (savedProfile.located) setLocated(savedProfile.located)
       await api.put('/pros/me/services', services.map(s => ({
         name: s.name, price: s.price, durationMinutes: s.durationMinutes, description: s.description,
       })))
@@ -337,7 +344,10 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
       await api.put('/pros/me/unavailable-periods', unavailablePeriods.map(p => ({
         startDate: p.startDate, endDate: p.endDate, reason: p.reason,
       })))
-      const updated = { ...profile, ...form, services, availabilities, unavailableDates: unavailablePeriods }
+      const updated = {
+        ...profile, ...form, lat: savedProfile.lat, lng: savedProfile.lng,
+        services, availabilities, unavailableDates: unavailablePeriods,
+      }
       onSave(updated)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
@@ -370,9 +380,29 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
           <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div>
-          <label className="label">Ville</label>
-          <input className="input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+          <label className="label">Adresse des prestations</label>
+          <input className="input" value={form.address} autoComplete="street-address"
+            placeholder="12 rue des Lilas (laisser vide si vous vous déplacez chez les clientes)"
+            onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          <p className="text-xs text-anthracite/50 mt-1.5">
+            Elle sera visible sur votre fiche et servira à vous placer sur la carte.
+            Sans adresse, vous apparaissez au centre de votre ville.
+          </p>
         </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="label">Code postal</label>
+            <input className="input" value={form.postalCode} inputMode="numeric" maxLength={5} placeholder="75011"
+              onChange={(e) => setForm({ ...form, postalCode: e.target.value.replace(/\D/g, '') })} />
+          </div>
+          <div className="col-span-2">
+            <label className="label">Ville</label>
+            <input className="input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+          </div>
+        </div>
+        {located && (
+          <p className="text-xs text-green-700">📍 Position sur la carte : {located}</p>
+        )}
         <div>
           <label className="label">Bio</label>
           <textarea className="input h-28 resize-none" value={form.bio}
