@@ -27,8 +27,11 @@ export interface ProProfile {
   specialties: Specialty[]
   bio?: string
   city: string
-  lat?: number
-  lng?: number
+  // Lieu des prestations ; lat/lng sont calculés par le serveur à partir de l'adresse
+  address?: string | null
+  postalCode?: string | null
+  lat?: number | null
+  lng?: number | null
   photoUrl?: string
   siret: string
   siretVerified: boolean
