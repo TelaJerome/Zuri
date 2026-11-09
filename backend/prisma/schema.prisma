@@ -73,7 +73,8 @@ model ProProfile {
   lat            Float?
   lng            Float?
   photoUrl       String?
-  siret          String      @unique
+  // Facultatif, jamais montré aux clientes (seulement à la pro et à l'admin)
+  siret          String?     @unique
   siretVerified  Boolean     @default(false)
   isActive       Boolean     @default(true)
   rating         Float?

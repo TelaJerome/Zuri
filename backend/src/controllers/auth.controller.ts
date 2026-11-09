@@ -18,7 +18,8 @@ const registerProSchema = z.object({
   password: z.string().min(6),
   phone: z.string().optional(),
   name: z.string().min(2),
-  siret: z.string(),
+  // Facultatif : la pro peut l'ajouter plus tard depuis son espace (espaces retirés)
+  siret: z.string().transform((s) => s.replace(/\s/g, '')).optional(),
   city: z.string().min(2),
   specialties: z.array(z.enum(['COIFFURE', 'ESTHETIQUE', 'NAIL_ART', 'MASSAGE', 'MAQUILLAGE'])).min(1),
 })
@@ -57,9 +58,10 @@ export async function registerPro(req: Request, res: Response) {
     res.status(400).json({ message: 'Données invalides', errors: parsed.error.flatten() })
     return
   }
-  const { email, password, phone, name, siret, city, specialties } = parsed.data
+  const { email, password, phone, name, city, specialties } = parsed.data
+  const siret = parsed.data.siret || null
 
-  if (!isValidSiret(siret)) {
+  if (siret && !isValidSiret(siret)) {
     res.status(400).json({ message: 'Numéro SIRET invalide' })
     return
   }
@@ -70,8 +72,7 @@ export async function registerPro(req: Request, res: Response) {
     return
   }
 
-  const siretExists = await prisma.proProfile.findUnique({ where: { siret } })
-  if (siretExists) {
+  if (siret && (await prisma.proProfile.findUnique({ where: { siret } }))) {
     res.status(409).json({ message: 'Ce SIRET est déjà enregistré' })
     return
   }

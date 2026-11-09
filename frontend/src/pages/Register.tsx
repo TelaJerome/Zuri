@@ -70,7 +70,7 @@ export default function Register() {
     e.preventDefault()
     setError('')
     if (role === 'pro') {
-      if (!isValidSiret(form.siret)) {
+      if (form.siret && !isValidSiret(form.siret)) {
         setError('Numéro SIRET invalide : vérifiez les 14 chiffres.')
         return
       }
@@ -159,12 +159,13 @@ export default function Register() {
                 </div>
                 <div>
                   <label className="label">
-                    Numéro SIRET <span className="text-red-500">*</span>
+                    Numéro SIRET <span className="text-anthracite/40 normal-case">(facultatif)</span>
                   </label>
-                  <input type="text" className="input" required placeholder="14 chiffres"
+                  <input type="text" className="input" inputMode="numeric" placeholder="14 chiffres"
                     maxLength={14}
                     value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value.replace(/\s/g, '') })} />
                   <p className="text-xs text-anthracite/50 mt-1.5">
+                    Vous pourrez l'ajouter plus tard dans votre espace pro. Il n'est jamais affiché aux clientes.
                     Pas encore de SIRET ?{' '}
                     <a
                       href="https://www.autoentrepreneur.urssaf.fr"

@@ -233,6 +233,7 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
     bio: profile.bio || '',
     city: profile.city,
     address: profile.address || '',
+    siret: profile.siret || '',
     postalCode: profile.postalCode || '',
     photoUrl: profile.photoUrl || '',
   })
@@ -333,6 +334,7 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
     try {
       const { data: savedProfile } = await api.put<ProProfile & { located: string | null }>('/pros/me/profile', {
         name: form.name, bio: form.bio, city: form.city, address: form.address, postalCode: form.postalCode,
+        siret: form.siret,
       })
       if (savedProfile.located) setLocated(savedProfile.located)
       await api.put('/pros/me/services', services.map(s => ({
@@ -411,10 +413,16 @@ function ProfileEditor({ profile, onSave }: { profile: ProProfile; onSave: (p: P
           />
         </div>
         <div>
-          <label className="label">SIRET</label>
-          <p className="text-sm text-anthracite/60 bg-pearl px-4 py-2.5 rounded-xl border border-rose/30">
-            {profile.siret}
-            {profile.siretVerified && <span className="ml-2 text-green-600 text-xs">✓ Vérifié</span>}
+          <label className="label">
+            SIRET <span className="text-anthracite/40 normal-case">(facultatif)</span>
+            {profile.siretVerified && form.siret === profile.siret && (
+              <span className="ml-2 text-green-600 text-xs normal-case">✓ Vérifié</span>
+            )}
+          </label>
+          <input className="input" value={form.siret} inputMode="numeric" maxLength={14} placeholder="14 chiffres"
+            onChange={(e) => setForm({ ...form, siret: e.target.value.replace(/\s/g, '') })} />
+          <p className="text-xs text-anthracite/50 mt-1.5">
+            Visible uniquement par vous et l'équipe Zuri, jamais par les clientes.
           </p>
         </div>
         <div>
