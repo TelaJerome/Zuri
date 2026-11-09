@@ -5,6 +5,7 @@ import { fr } from 'date-fns/locale'
 import api from '../lib/api'
 import { useAuthStore } from '../lib/store'
 import { Conversation, Message } from '../types'
+import { ClientSocials, clientLabel } from '../components/ui/ClientIdentity'
 
 const LIST_POLL_MS = 15_000
 const THREAD_POLL_MS = 10_000
@@ -89,7 +90,7 @@ export default function Messages() {
     }
   }
 
-  const otherName = (c: Conversation) => (isPro ? c.client.email : c.pro.name)
+  const otherName = (c: Conversation) => (isPro ? clientLabel(c.client) : c.pro.name)
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
@@ -167,6 +168,12 @@ export default function Messages() {
                 {selected && (
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{otherName(selected)}</p>
+                    {isPro && (
+                      <p className="text-xs text-anthracite/50">
+                        {selected.client.name && <>{selected.client.email} · </>}
+                        <ClientSocials client={selected.client} />
+                      </p>
+                    )}
                     {!isPro && (
                       <Link to={`/professionnelles/${selected.pro.id}`} className="text-xs text-taupe hover:underline">
                         Voir la fiche · {selected.pro.city}

@@ -15,6 +15,8 @@ const FIELD_LABELS: Record<string, string> = {
   siret: 'SIRET',
   city: 'ville',
   specialties: 'spécialité',
+  instagram: 'pseudo Instagram',
+  snapchat: 'pseudo Snapchat',
 }
 
 // Même contrôle que le backend : 14 chiffres + algorithme de Luhn
@@ -47,6 +49,7 @@ export default function Register() {
   const [form, setForm] = useState({
     email: '', password: '', phone: '',
     name: '', siret: '', city: '',
+    instagram: '', snapchat: '',
   })
   const [specialties, setSpecialties] = useState<Specialty[]>([])
   const [error, setError] = useState('')
@@ -85,7 +88,10 @@ export default function Register() {
       const payload =
         role === 'pro'
           ? { ...form, specialties }
-          : { email: form.email, password: form.password, phone: form.phone }
+          : {
+              email: form.email, password: form.password, phone: form.phone,
+              name: form.name, instagram: form.instagram, snapchat: form.snapchat,
+            }
 
       const { data } = await api.post<{ token: string; user: User }>(endpoint, payload)
       setAuth(data.user, data.token)
@@ -144,6 +150,32 @@ export default function Register() {
               <input type="tel" className="input" placeholder="06 00 00 00 00"
                 value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
+
+            {role === 'client' && (
+              <>
+                <div>
+                  <label className="label">Prénom et nom</label>
+                  <input type="text" className="input" required minLength={2} autoComplete="name" placeholder="Awa Diallo"
+                    value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Instagram <span className="text-anthracite/40 normal-case">(facultatif)</span></label>
+                    <input type="text" className="input" placeholder="@pseudo" autoCapitalize="none"
+                      value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="label">Snapchat <span className="text-anthracite/40 normal-case">(facultatif)</span></label>
+                    <input type="text" className="input" placeholder="pseudo" autoCapitalize="none"
+                      value={form.snapchat} onChange={(e) => setForm({ ...form, snapchat: e.target.value })} />
+                  </div>
+                </div>
+                <p className="text-xs text-anthracite/50 -mt-2">
+                  Votre nom et vos réseaux aident les professionnelles à vous reconnaître. Ils ne sont visibles
+                  que par celles chez qui vous réservez ou à qui vous écrivez.
+                </p>
+              </>
+            )}
 
             {role === 'pro' && (
               <>

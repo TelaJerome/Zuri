@@ -6,6 +6,7 @@ import { Appointment, Availability, ProProfile, Product, Service, UnavailablePer
 import { useAuthStore } from '../lib/store'
 import { LABELS } from '../components/ui/SpecialtyBadge'
 import { useOpenConversation } from '../lib/messages'
+import { ClientSocials, clientLabel } from '../components/ui/ClientIdentity'
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
@@ -105,7 +106,10 @@ export default function ProDashboard() {
                       <p className="font-medium">{apt.service?.name}</p>
                       {apt.client ? (
                         <p className="text-sm text-anthracite/60">
-                          Cliente : {apt.client.email} ·{' '}
+                          Cliente : <span className="font-medium text-anthracite">{clientLabel(apt.client)}</span>
+                          {apt.client.name && <span className="text-anthracite/40"> ({apt.client.email})</span>} ·{' '}
+                          <ClientSocials client={apt.client} />
+                          {(apt.client.instagram || apt.client.snapchat) && ' · '}
                           <button
                             onClick={() => openConversation({ clientId: apt.client!.id }).catch(() => {})}
                             className="text-taupe font-medium hover:underline"
