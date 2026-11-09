@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { format, addDays, startOfDay } from 'date-fns'
+import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProProfile, Service, TimeSlot } from '../../types'
 import { useAuthStore } from '../../lib/store'
 import api, { DEMO_MODE } from '../../lib/api'
 import { useNavigate } from 'react-router-dom'
+import BookingCalendar from './BookingCalendar'
 
 interface Props {
   pro: ProProfile
@@ -48,9 +49,6 @@ export default function BookingPanel({ pro }: Props) {
 
   // Seule une cliente connectée réserve avec son compte ; les autres donnent leurs coordonnées
   const isClient = user?.role === 'CLIENT'
-
-  const today = startOfDay(new Date())
-  const dates = Array.from({ length: 14 }, (_, i) => addDays(today, i + 1))
 
   // Les créneaux dépendent de la durée de la prestation (elle doit tenir avant une pause ou la fin de journée)
   async function handleDateSelect(date: Date, service: Service | null = selectedService) {
@@ -166,27 +164,20 @@ export default function BookingPanel({ pro }: Props) {
       {/* Choix date */}
       {selectedService && (
         <div>
-          <label className="label">Date</label>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {dates.map((date) => {
-              const isSelected = selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-              return (
-                <button
-                  key={date.toISOString()}
-                  onClick={() => handleDateSelect(date)}
-                  className={`flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border text-xs transition-all ${
-                    isSelected ? 'border-taupe bg-cream' : 'border-rose/30 hover:border-taupe/50'
-                  }`}
-                >
-                  <span className="text-anthracite/50 capitalize">
-                    {format(date, 'EEE', { locale: fr })}
-                  </span>
-                  <span className="font-semibold text-sm">{format(date, 'd')}</span>
-                  <span className="text-anthracite/50">{format(date, 'MMM', { locale: fr })}</span>
-                </button>
-              )
-            })}
-          </div>
+          <label className="label">
+            Date
+            {selectedDate && (
+              <span className="ml-2 normal-case text-taupe">
+                {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+              </span>
+            )}
+          </label>
+          <BookingCalendar
+            selected={selectedDate}
+            onSelect={(date) => handleDateSelect(date)}
+            availabilities={pro.availabilities || []}
+            unavailableDates={pro.unavailableDates}
+          />
         </div>
       )}
 
