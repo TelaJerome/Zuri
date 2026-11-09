@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { z } from 'zod'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../lib/prisma'
-import { toMinutes } from './pro.controller'
+import { toMinutes, isWithinBookingHorizon } from './pro.controller'
 import { PRIVATE_PRO_FIELDS } from '../lib/publicPro'
 
 const bookSchema = z.object({
@@ -32,6 +32,11 @@ export async function bookAppointment(req: AuthRequest, res: Response) {
   const clientId = req.user?.role === 'CLIENT' ? req.user.userId : null
   if (!clientId && !guest) {
     res.status(400).json({ message: 'Indiquez votre nom, votre email et votre téléphone' })
+    return
+  }
+
+  if (!isWithinBookingHorizon(date)) {
+    res.status(400).json({ message: 'Les réservations sont possibles jusqu\'à 1 mois à l\'avance' })
     return
   }
 
