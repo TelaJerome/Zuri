@@ -33,8 +33,9 @@ export interface ProProfile {
   lat?: number | null
   lng?: number | null
   photoUrl?: string
-  siret: string
-  siretVerified: boolean
+  // Facultatifs et absents des réponses publiques : seuls la pro et l'admin les reçoivent
+  siret?: string | null
+  siretVerified?: boolean
   isActive: boolean
   rating?: number
   services?: Service[]
