@@ -49,14 +49,14 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-xs text-anthracite/50">{(pro as any).user?.email} · {pro.city}</p>
                   <p className="text-xs text-anthracite/50 font-mono mt-0.5">
-                    SIRET : {pro.siret}{' '}
-                    {pro.siretVerified ? (
+                    SIRET : {pro.siret || <span className="italic">non renseigné</span>}{' '}
+                    {pro.siret && (pro.siretVerified ? (
                       <span className="text-green-600">✓ Vérifié</span>
                     ) : (
                       <button onClick={() => verifySiret(pro.id)} className="text-taupe underline ml-1">
                         Vérifier
                       </button>
-                    )}
+                    ))}
                   </p>
                 </div>
                 <button
