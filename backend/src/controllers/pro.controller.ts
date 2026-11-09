@@ -38,6 +38,17 @@ const availabilitySchema = z.array(
   })
 )
 
+// Réservation possible d'aujourd'hui jusqu'à 1 mois à l'avance (même limite que le calendrier)
+export const BOOKING_HORIZON_MONTHS = 1
+
+// La date « AAAA-MM-JJ » est-elle dans la période réservable ?
+export function isWithinBookingHorizon(date: string, now = new Date()) {
+  const today = now.toISOString().slice(0, 10)
+  const max = new Date(`${today}T00:00:00Z`)
+  max.setUTCMonth(max.getUTCMonth() + BOOKING_HORIZON_MONTHS)
+  return date >= today && date <= max.toISOString().slice(0, 10)
+}
+
 export function toMinutes(time: string) {
   const [h, m] = time.split(':').map(Number)
   return h * 60 + m
@@ -96,6 +107,8 @@ export async function getProById(req: Request, res: Response) {
     include: {
       services: true,
       availabilities: { orderBy: { dayOfWeek: 'asc' } },
+      // Pour griser les jours d'absence dans le calendrier (le motif reste privé)
+      unavailableDates: { select: { startDate: true, endDate: true } },
       products: { where: { isActive: true } },
     },
   })
@@ -285,6 +298,12 @@ export async function getAvailableSlots(req: Request, res: Response) {
   }
 
   const dateObj = new Date(date as string)
+
+  // Hors de la période réservable (passé ou plus d'un mois) : aucun créneau
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date as string) || !isWithinBookingHorizon(date as string)) {
+    res.json([])
+    return
+  }
 
   // Vérifie si la date tombe dans une plage d'indisponibilité
   const isUnavailable = pro.unavailableDates.some((p) => {
