@@ -5,12 +5,25 @@ import { Role } from '@prisma/client'
 import { signToken } from '../utils/jwt'
 import { isValidSiret } from '../utils/siret'
 import { geocode } from '../utils/geocode'
+import { instagramSchema, snapchatSchema } from '../utils/social'
 import prisma from '../lib/prisma'
 
 const registerClientSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   phone: z.string().optional(),
+  // Prénom et nom, pour que les pros reconnaissent la cliente ; réseaux facultatifs
+  name: z.string().trim().min(2).max(100),
+  instagram: instagramSchema.optional(),
+  snapchat: snapchatSchema.optional(),
+})
+
+// Modification de ses propres informations par une cliente (champ absent = inchangé)
+const updateMeSchema = z.object({
+  name: z.string().trim().min(2).max(100).optional(),
+  phone: z.string().trim().max(20).optional(),
+  instagram: instagramSchema.optional(),
+  snapchat: snapchatSchema.optional(),
 })
 
 const registerProSchema = z.object({
@@ -35,7 +48,7 @@ export async function registerClient(req: Request, res: Response) {
     res.status(400).json({ message: 'Données invalides', errors: parsed.error.flatten() })
     return
   }
-  const { email, password, phone } = parsed.data
+  const { email, password, phone, name } = parsed.data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
@@ -45,11 +58,35 @@ export async function registerClient(req: Request, res: Response) {
 
   const passwordHash = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
-    data: { email, passwordHash, phone, role: Role.CLIENT },
+    data: {
+      email, passwordHash, phone, name, role: Role.CLIENT,
+      instagram: parsed.data.instagram || null,
+      snapchat: parsed.data.snapchat || null,
+    },
   })
 
   const token = signToken({ userId: user.id, role: user.role })
-  res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role } })
+  res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role, name: user.name } })
+}
+
+export async function updateMe(req: Request & { user?: { userId: string; role: string } }, res: Response) {
+  const parsed = updateMeSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Données invalides', errors: parsed.error.flatten() })
+    return
+  }
+  const { name, phone, instagram, snapchat } = parsed.data
+  const user = await prisma.user.update({
+    where: { id: req.user!.userId },
+    data: {
+      ...(name !== undefined && { name }),
+      ...(phone !== undefined && { phone: phone || null }),
+      ...(instagram !== undefined && { instagram: instagram || null }),
+      ...(snapchat !== undefined && { snapchat: snapchat || null }),
+    },
+    select: { id: true, email: true, role: true, phone: true, name: true, instagram: true, snapchat: true },
+  })
+  res.json(user)
 }
 
 export async function registerPro(req: Request, res: Response) {

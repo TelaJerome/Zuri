@@ -47,6 +47,10 @@ model User {
   email        String   @unique
   passwordHash String
   phone        String?
+  // Clientes : nom et réseaux sociaux (facultatifs) pour que les pros les reconnaissent
+  name         String?
+  instagram    String?
+  snapchat     String?
   role         Role     @default(CLIENT)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

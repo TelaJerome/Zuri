@@ -11,6 +11,101 @@ const STATUS_LABELS: Record<string, { label: string; class: string }> = {
   CANCELLED: { label: 'Annulé', class: 'bg-red-50 text-red-700 border-red-200' },
 }
 
+// Nom, téléphone et réseaux de la cliente, visibles par les pros chez qui elle réserve ou à qui elle écrit
+function MyInfoCard() {
+  const [form, setForm] = useState({ name: '', phone: '', instagram: '', snapchat: '' })
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+
+  useEffect(() => {
+    api.get('/auth/me').then(({ data }) => {
+      setForm({
+        name: data.name ?? '', phone: data.phone ?? '',
+        instagram: data.instagram ?? '', snapchat: data.snapchat ?? '',
+      })
+      // Comptes créés avant l'ajout du nom : on ouvre la section pour inviter à le compléter
+      if (!data.name) setOpen(true)
+    }).catch(() => {})
+  }, [])
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setMessage(null)
+    try {
+      const { data } = await api.put('/auth/me', form)
+      setForm({ name: data.name ?? '', phone: data.phone ?? '', instagram: data.instagram ?? '', snapchat: data.snapchat ?? '' })
+      setMessage({ ok: true, text: 'Informations enregistrées.' })
+    } catch (err: any) {
+      const fields = Object.keys(err.response?.data?.errors?.fieldErrors ?? {})
+      const labels: Record<string, string> = { name: 'nom (2 caractères minimum)', instagram: 'pseudo Instagram', snapchat: 'pseudo Snapchat', phone: 'téléphone' }
+      setMessage({
+        ok: false,
+        text: fields.length ? `Champ invalide : ${fields.map((f) => labels[f] ?? f).join(', ')}` : 'L\'enregistrement a échoué.',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="card p-5 mb-8">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center justify-between">
+        <span className="font-serif text-xl">Mes informations</span>
+        <span className="text-sm text-taupe">{open ? 'Fermer' : 'Modifier'}</span>
+      </button>
+      {!open && (
+        <p className="text-sm text-anthracite/60 mt-1">
+          {form.name || 'Nom non renseigné'}
+          {form.instagram && ` · Instagram @${form.instagram}`}
+          {form.snapchat && ` · Snapchat ${form.snapchat}`}
+        </p>
+      )}
+      {open && (
+        <form onSubmit={save} className="space-y-3 mt-4">
+          {!form.name && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              Ajoutez votre nom pour que les professionnelles vous reconnaissent.
+            </p>
+          )}
+          <div>
+            <label className="label">Prénom et nom</label>
+            <input className="input" value={form.name} autoComplete="name" required minLength={2}
+              onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Téléphone <span className="text-anthracite/40 normal-case">(facultatif)</span></label>
+            <input className="input" type="tel" value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Instagram <span className="text-anthracite/40 normal-case">(facultatif)</span></label>
+              <input className="input" placeholder="@pseudo" autoCapitalize="none" value={form.instagram}
+                onChange={(e) => setForm({ ...form, instagram: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Snapchat <span className="text-anthracite/40 normal-case">(facultatif)</span></label>
+              <input className="input" placeholder="pseudo" autoCapitalize="none" value={form.snapchat}
+                onChange={(e) => setForm({ ...form, snapchat: e.target.value })} />
+            </div>
+          </div>
+          <p className="text-xs text-anthracite/50">
+            Visibles uniquement par les professionnelles chez qui vous réservez ou à qui vous écrivez.
+          </p>
+          {message && (
+            <p role="alert" className={`text-sm ${message.ok ? 'text-green-700' : 'text-red-600'}`}>{message.text}</p>
+          )}
+          <button type="submit" disabled={saving} className="btn-primary w-full">
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
+
 export default function MyAppointments() {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -34,6 +129,8 @@ export default function MyAppointments() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <h1 className="font-serif text-4xl mb-8">Mes rendez-vous</h1>
+
+      <MyInfoCard />
 
       <div className="flex gap-2 mb-6">
         {(['upcoming', 'past'] as const).map((t) => (
