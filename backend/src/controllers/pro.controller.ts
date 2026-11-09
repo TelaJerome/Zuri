@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../lib/prisma'
 import { geocode } from '../utils/geocode'
+import { isValidSiret } from '../utils/siret'
+import { PRIVATE_PRO_FIELDS } from '../lib/publicPro'
 
 const updateProfileSchema = z.object({
   name: z.string().min(2).optional(),
@@ -11,6 +13,8 @@ const updateProfileSchema = z.object({
   // Chaîne vide = adresse retirée (la pro est alors placée au centre de sa ville)
   address: z.string().trim().max(200).optional(),
   postalCode: z.string().trim().regex(/^(\d{5})?$/, 'Code postal à 5 chiffres').optional(),
+  // Chaîne vide = SIRET retiré ; jamais affiché aux clientes
+  siret: z.string().transform((s) => s.replace(/\s/g, '')).optional(),
   specialties: z
     .array(z.enum(['COIFFURE', 'ESTHETIQUE', 'NAIL_ART', 'MASSAGE', 'MAQUILLAGE']))
     .optional(),
@@ -74,6 +78,7 @@ export async function listPros(req: Request, res: Response) {
         ],
       }),
     },
+    omit: PRIVATE_PRO_FIELDS,
     include: {
       services: { orderBy: { price: 'asc' }, take: 1 },
       _count: { select: { appointments: true } },
@@ -87,6 +92,7 @@ export async function listPros(req: Request, res: Response) {
 export async function getProById(req: Request, res: Response) {
   const pro = await prisma.proProfile.findUnique({
     where: { id: req.params.id, isActive: true },
+    omit: PRIVATE_PRO_FIELDS,
     include: {
       services: true,
       availabilities: { orderBy: { dayOfWeek: 'asc' } },
@@ -118,6 +124,24 @@ export async function updateMyProfile(req: AuthRequest, res: Response) {
   const postalCode = parsed.data.postalCode === undefined ? pro.postalCode : parsed.data.postalCode || null
   const city = parsed.data.city ?? pro.city
   const data: { [key: string]: unknown } = { ...parsed.data, address, postalCode }
+
+  if (parsed.data.siret !== undefined) {
+    const siret = parsed.data.siret || null
+    if (siret && !isValidSiret(siret)) {
+      res.status(400).json({ message: 'Numéro SIRET invalide' })
+      return
+    }
+    if (siret && siret !== pro.siret) {
+      const taken = await prisma.proProfile.findUnique({ where: { siret } })
+      if (taken) {
+        res.status(409).json({ message: 'Ce SIRET est déjà enregistré' })
+        return
+      }
+    }
+    data.siret = siret
+    // Un nouveau numéro doit être revérifié par l'admin
+    if (siret !== pro.siret) data.siretVerified = false
+  }
 
   // Recalcule la position sur la carte si le lieu a changé (ou n'a jamais été calculé)
   const placeChanged = address !== pro.address || postalCode !== pro.postalCode || city !== pro.city

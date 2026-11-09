@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../lib/prisma'
 import { toMinutes } from './pro.controller'
+import { PRIVATE_PRO_FIELDS } from '../lib/publicPro'
 
 const bookSchema = z.object({
   proId: z.string(),
@@ -88,7 +89,7 @@ export async function bookAppointment(req: AuthRequest, res: Response) {
       endTime,
       notes,
     },
-    include: { service: true, pro: true },
+    include: { service: true, pro: { omit: PRIVATE_PRO_FIELDS } },
   })
 
   res.status(201).json(appointment)
@@ -104,7 +105,7 @@ export async function getMyAppointments(req: AuthRequest, res: Response) {
       ...(upcoming === 'true' && { date: { gte: now } }),
       ...(upcoming === 'false' && { date: { lt: now } }),
     },
-    include: { service: true, pro: true },
+    include: { service: true, pro: { omit: PRIVATE_PRO_FIELDS } },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
   })
 
