@@ -8,6 +8,10 @@ export interface User {
   id: string
   email: string
   phone?: string
+  // Clientes : nom et réseaux sociaux (facultatifs)
+  name?: string | null
+  instagram?: string | null
+  snapchat?: string | null
   role: Role
   proProfile?: ProProfile
 }
@@ -134,7 +138,7 @@ export interface Conversation {
   clientId: string
   proId: string
   lastMessageAt: string
-  client: { id: string; email: string }
+  client: { id: string; email: string; name?: string | null; instagram?: string | null; snapchat?: string | null }
   pro: { id: string; name: string; photoUrl?: string | null; city: string }
   lastMessage: Message | null
   unreadCount: number
