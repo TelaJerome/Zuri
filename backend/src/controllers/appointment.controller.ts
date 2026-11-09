@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../lib/prisma'
 import { toMinutes, isWithinBookingHorizon } from './pro.controller'
 import { PRIVATE_PRO_FIELDS } from '../lib/publicPro'
+import { CLIENT_FOR_PRO } from '../utils/social'
 
 const bookSchema = z.object({
   proId: z.string(),
@@ -127,7 +128,7 @@ export async function getProAppointments(req: AuthRequest, res: Response) {
   const appointments = await prisma.appointment.findMany({
     where: { proId: pro.id },
     // Jamais la fiche complète de la cliente (elle contient le hash du mot de passe)
-    include: { service: true, client: { select: { id: true, email: true, phone: true } } },
+    include: { service: true, client: { select: { ...CLIENT_FOR_PRO, phone: true } } },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
   })
 

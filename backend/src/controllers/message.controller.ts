@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { z } from 'zod'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../lib/prisma'
+import { CLIENT_FOR_PRO } from '../utils/social'
 
 const startSchema = z.object({
   proId: z.string().optional(),
@@ -14,7 +15,7 @@ const messageSchema = z.object({
 
 // Ce que chaque côté voit de l'autre : jamais la fiche complète de l'utilisatrice
 const conversationInclude = {
-  client: { select: { id: true, email: true } },
+  client: { select: CLIENT_FOR_PRO },
   pro: { select: { id: true, name: true, photoUrl: true, city: true } },
   messages: { orderBy: { createdAt: 'desc' as const }, take: 1 },
 }
